@@ -12,10 +12,8 @@
   .PARAMETER policyName
   The name of the new Firewall Rules policy, or in the event of multiple rules, each create Firewall Rule profile.
 
-  .PARAMETER extensionAttribute
-  Configure the device extensionAttribute to be used for tagging Entra ID device objects
-  with their Feature Update Readiness Assessment risk score.
-  Choice of extensionAttribute1 to extensionAttribute15
+  .PARAMETER oldFirewallPolicies
+  A list, or array, of the old Firewall Rule policies that are to be converted.
 
   .PARAMETER Scopes
   The scopes used to connect to the Graph API using PowerShell.
@@ -29,7 +27,7 @@
   None. Invoke-MgConvertFirewallRules.ps1 doesn't generate any output.
 
   .EXAMPLE
-  PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -extensionAttribute extensionAttribute15
+  PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -policyName 'CO_FW_Rules' -oldFirewallPolicies 'Legacy_FW_Rule1, Legacy_FW_Rule2, Legacy_FW_Rule3'
 
 #>
 
@@ -43,7 +41,10 @@ param(
     [String]$policyName,
 
     [Parameter(Mandatory = $true)]
-    [String[]]$oldFirewallPolicies
+    [String[]]$oldFirewallPolicies,
+
+    [Parameter(Mandatory = $false)]
+    [String[]]$Scopes = 'DeviceManagementConfiguration.ReadWrite.All'
 
 )
 
@@ -69,81 +70,6 @@ Function Test-JSON() {
     }
 
 }
-Function Get-AuthTokenMSAL {
-
-    <#
-    .SYNOPSIS
-    This function is used to authenticate with the Graph API REST interface
-    .DESCRIPTION
-    The function authenticate with the Graph API Interface with the tenant name
-    .EXAMPLE
-    Get-AuthTokenMSAL
-    Authenticates you with the Graph API interface using MSAL.PS module
-    .NOTES
-    NAME: Get-AuthTokenMSAL
-    #>
-
-    [cmdletbinding()]
-
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        $User
-    )
-
-    $userUpn = New-Object 'System.Net.Mail.MailAddress' -ArgumentList $User
-    $tenant = $userUpn.Host
-
-    Write-Host 'Checking for MSAL.PS module...'
-    $MSALModule = Get-Module -Name 'MSAL.PS' -ListAvailable
-    if ($null -eq $MSALModule) {
-        Write-Host 'MSAL.PS Powershell module not installed...' -f Red
-        Write-Host "Install by running 'Install-Module MSAL.PS' from an elevated PowerShell prompt and restart the script" -f Yellow
-        Write-Host "Script can't continue..." -f Red
-        break
-    }
-    if ($MSALModule.count -gt 1) {
-        $Latest_Version = ($MSALModule | Select-Object version | Sort-Object)[-1]
-        $MSALModule = $MSALModule | Where-Object { $_.version -eq $Latest_Version.version }
-        # Checking if there are multiple versions of the same module found
-        if ($MSALModule.count -gt 1) {
-            $MSALModule = $MSALModule | Select-Object -Unique
-        }
-    }
-
-    $ClientId = 'd1ddf0e4-d672-4dae-b554-9d5bdfd93547'
-    $RedirectUri = 'urn:ietf:wg:oauth:2.0:oob'
-    $Authority = "https://login.microsoftonline.com/$Tenant"
-
-    try {
-        Import-Module $MSALModule.Name
-        if ($PSVersionTable.PSVersion.Major -ne 7) {
-            $authResult = Get-MsalToken -ClientId $ClientId -Interactive -RedirectUri $RedirectUri -Authority $Authority
-        }
-        else {
-            $authResult = Get-MsalToken -ClientId $ClientId -Interactive -RedirectUri $RedirectUri -Authority $Authority -DeviceCode
-        }
-        # If the accesstoken is valid then create the authentication header
-        if ($authResult.AccessToken) {
-            # Creating header for Authorization token
-            $authHeader = @{
-                'Content-Type'  = 'application/json'
-                'Authorization' = 'Bearer ' + $authResult.AccessToken
-                'ExpiresOn'     = $authResult.ExpiresOn
-            }
-            return $authHeader
-        }
-        else {
-            Write-Host 'Authorization Access Token is null, please re-run authentication...' -ForegroundColor Red
-            break
-        }
-    }
-    catch {
-        Write-Host $_.Exception.Message -f Red
-        Write-Host $_.Exception.ItemName -f Red
-        break
-    }
-}
 Function New-DeviceSettingsCatalog() {
 
     [cmdletbinding()]
@@ -160,7 +86,7 @@ Function New-DeviceSettingsCatalog() {
     try {
         Test-Json -Json $JSON
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        Invoke-RestMethod -Uri $uri -Headers $authToken -Method Post -Body $JSON -ContentType 'application/json'
+        Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
         $exs = $Error.ErrorDetails
@@ -179,7 +105,7 @@ Function Get-DeviceEndpointSecProfile() {
     param (
 
         [Parameter(Mandatory = $false)]
-        $Name,
+        $name,
 
         [Parameter(Mandatory = $false)]
         $Id
@@ -192,15 +118,15 @@ Function Get-DeviceEndpointSecProfile() {
     try {
         if ($Id) {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource/$Id"
-            Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
+            Invoke-MgGraphRequest -Uri $uri -Method Get
         }
-        elseif ($Name) {
+        elseif ($name) {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value | Where-Object { ($_.displayName).contains("$Name") }
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value | Where-Object { ($_.displayName).contains("$name") }
         }
         Else {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-RestMethod -Method Get -Uri $uri -Headers $authToken).value
+            (Invoke-MgGraphRequest-Method Get -Uri $uri).value
         }
     }
     catch {
@@ -244,7 +170,7 @@ Function Get-DeviceEndpointSecCategorySetting() {
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        (Invoke-RestMethod -Method Get -Uri $uri -Headers $authToken).value
+        (Invoke-MgGraphRequest -Method Get -Uri $uri).value
     }
     catch {
         $exs = $Error.ErrorDetails
@@ -284,7 +210,7 @@ Function Get-DeviceEndpointSecTemplateCategory() {
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        (Invoke-RestMethod -Method Get -Uri $uri -Headers $authToken).value
+        (Invoke-MgGraphRequest -Method Get -Uri $uri).value
     }
     catch {
         $exs = $Error.ErrorDetails
@@ -303,7 +229,7 @@ Function Get-DeviceEndpointSecTemplate() {
     param (
 
         [Parameter(Mandatory = $false)]
-        $Name,
+        $name,
 
         [Parameter(Mandatory = $false)]
         $Id
@@ -316,15 +242,15 @@ Function Get-DeviceEndpointSecTemplate() {
     try {
         if ($Id) {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource/$Id"
-            Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
+            Invoke-MgGraphRequest -Uri $uri -Method Get
         }
-        elseif ($Name) {
+        elseif ($name) {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value | Where-Object { ($_.displayName).contains("$Name") }
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value | Where-Object { ($_.displayName).contains("$name") }
         }
         Else {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-RestMethod -Method Get -Uri $uri -Headers $authToken).value
+            (Invoke-MgGraphRequest -Method Get -Uri $uri).value
         }
     }
     catch {
@@ -340,33 +266,54 @@ Function Get-DeviceEndpointSecTemplate() {
 }
 #endregion Functions
 
-#region Authentication
-# Checking if authToken exists before running authentication
-if ($global:authToken) {
-    # Setting DateTime to Universal time to work in all timezones
-    $DateTime = (Get-Date).ToUniversalTime()
-    # If the authToken exists checking when it expires
-    $TokenExpires = ($authToken.ExpiresOn.datetime - $DateTime).Minutes
-    if ($TokenExpires -le 0) {
-        Write-Host 'Authentication Token expired' $TokenExpires 'minutes ago' -ForegroundColor Yellow
-        # Defining User Principal Name if not present
-        if ($null -eq $User -or $User -eq '') {
-            $User = Read-Host -Prompt 'Please specify your user principal name for Azure Authentication'
-        }
-        $global:authToken = Get-AuthTokenMSAL -User $User
+#region authentication
+$moduleName = 'Microsoft.Graph'
+$Module = Get-InstalledModule -Name $moduleName
+if ($Module.count -eq 0) {
+    Write-Host "$moduleName module is not available" -ForegroundColor yellow
+    $Confirm = Read-Host Are you sure you want to install module? [Y] Yes [N] No
+    if ($Confirm -match '[yY]') {
+        Install-Module -Name $moduleName -AllowClobber -Scope AllUsers -Force
+    }
+    else {
+        Write-Host "$moduleName module is required. Please install module using 'Install-Module $moduleName -Scope AllUsers -Force' cmdlet." -ForegroundColor Yellow
+        break
     }
 }
 else {
-    if ($null -eq $User -or $User -eq '') {
-        $User = Read-Host -Prompt 'Please specify your user principal name for Azure Authentication'
+    If ($IsMacOS) {
+        Connect-MgGraph -Scopes $Scopes -UseDeviceAuthentication -TenantId $tenantId
     }
-    # Getting the authorization token
-    $global:authToken = Get-AuthTokenMSAL -User $User$Filename
-    Write-Host 'Connected to Graph API' -ForegroundColor Green
-    Write-Host
-}
-#endregion
+    ElseIf ($IsWindows) {
+        Connect-MgGraph -Scopes $Scopes -UseDeviceCode -TenantId $tenantId
+    }
+    Else {
+        Connect-MgGraph -Scopes $Scopes -TenantId $tenantId
+    }
 
+    $graphDetails = Get-MgContext
+    if ($null -eq $graphDetails) {
+        Write-Host "Not connected to Graph, please review any errors and try to run the script again' cmdlet." -ForegroundColor Red
+        break
+    }
+}
+#endregion authentication
+
+
+Write-host "█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀█ █░█ █░░ █▀▀   █▀▀ █▀█ █▄░█ █░█ █▀▀ █▀█ ▀█▀ █▀▀ █▀█" -ForegroundColor Red
+Write-host "█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   █▀▄ █▄█ █▄▄ ██▄   █▄▄ █▄█ █░▀█ ▀▄▀ ██▄ █▀▄ ░█░ ██▄ █▀▄" -ForegroundColor Red
+
+Write-Host ('Connected to Tenant {0} as account {1}' -f $graphDetails.TenantId, $graphDetails.Account) -ForegroundColor Green
+Write-Host "Starting the Intune Firewall Converter Script..." -ForegroundColor Magenta
+Write-Host
+Write-Host 'The name of the Firewall Rules to be converted:' -ForegroundColor Green
+$oldFirewallPolicies
+Write-Host
+Write-Host 'The name of the new Firewall Rules will start with:' -ForegroundColor Green
+$policyName
+Write-Host
+Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
+Write-Host
 # Get the existing FW policy and settings
 
 # Testing
@@ -374,59 +321,59 @@ else {
 #$oldFirewallPolicies = @('MIG_CO_FW_DefenderFirewallRules')
 
 # Variables for Template IDs and to capture Rules
-$FWRules = @()
-$FWTemplateID = '4356d05c-a4ab-4a07-9ece-739f7c792910'
+$fwRules = @()
+$fwTemplateID = '4356d05c-a4ab-4a07-9ece-739f7c792910'
 
-foreach ($FirewallPolicy in $oldFirewallPolicies) {
-    $EndpointSecProfile = Get-DeviceEndpointSecProfile -Name $FirewallPolicy
-    if (($null -eq $EndpointSecProfile) -or ($EndpointSecProfile.templateId -ne $FWTemplateID)) {
-        Write-Host "Unable to find Legacy Firewall Rule Profile named $FirewallPolicy or $FirewallPolicy Profile is not a Firewall Rule profile, script will end." -ForegroundColor Red
+foreach ($oldFirewallPolicy in $oldFirewallPolicies) {
+    $endpointSecProfile = Get-DeviceEndpointSecProfile -Name $oldFirewallPolicy
+    if (($null -eq $endpointSecProfile) -or ($endpointSecProfile.templateId -ne $fwTemplateID)) {
+        Write-Host "Unable to find Legacy Firewall Rule Profile named $oldFirewallPolicy or $oldFirewallPolicy Profile is not a Firewall Rule profile, script will end." -ForegroundColor Red
         Break
     }
     else {
-        $EndpointSecTemplates = Get-DeviceEndpointSecTemplate
-        $EndpointSecTemplate = $EndpointSecTemplates | Where-Object { $_.id -eq $EndpointSecProfile.templateId }
-        $EndpointSecCategories = Get-DeviceEndpointSecTemplateCategory -Id $EndpointSecTemplate.id
-        Write-Host "Found Legacy Firewall Rule Profile $FirewallPolicy" -ForegroundColor Green
-        foreach ($EndpointSecCategory in $EndpointSecCategories) {
-            $EndpointSecSettings = Get-DeviceEndpointSecCategorySetting -Id $EndpointSecProfile.id -categoryId $EndpointSecCategories.id
+        $endpointSecTemplates = Get-DeviceEndpointSecTemplate
+        $endpointSecTemplate = $endpointSecTemplates | Where-Object { $_.id -eq $endpointSecProfile.templateId }
+        $endpointSecCategories = Get-DeviceEndpointSecTemplateCategory -Id $endpointSecTemplate.id
+        Write-Host "Found Legacy Firewall Rule Profile $oldFirewallPolicy" -ForegroundColor Green
+        foreach ($EndpointSecCategory in $endpointSecCategories) {
+            $endpointSecSettings = Get-DeviceEndpointSecCategorySetting -Id $endpointSecProfile.id -categoryId $endpointSecCategories.id
             # Existing FW rules
-            $FWRules += $EndpointSecSettings.valueJson | ConvertFrom-Json
+            $fwRules += $endpointSecSettings.valueJson | ConvertFrom-Json
         }
     }
 }
 
-Write-Host "Captured $($FWRules.count) rules from the provided legacy Endpoint Security Firewall Rules profiles." -ForegroundColor Green
+Write-Host "Captured $($fwRules.count) rules from the provided legacy Endpoint Security Firewall Rules profiles." -ForegroundColor Green
 
 # Sorting rules into groups of 100 for Setting Catalog requirements
 $counter = [pscustomobject] @{ Value = 0 }
 $groupSize = 100
-$FWRuleGroups = $FWRules | Group-Object -Property { [math]::Floor($counter.Value++ / $groupSize) }
+$fwRuleGroups = $fwRules | Group-Object -Property { [math]::Floor($counter.Value++ / $groupSize) }
 
 # Looping through each group of rules
-foreach ($FWRuleGroup in $FWRuleGroups) {
+foreach ($fwRuleGroup in $fwRuleGroups) {
 
     # Sets the Name of the policies
-    $NewPolicyName = $policyName + '-' + $FWRuleGroup.Name
-    $PolicyDescription = 'Migrated Firewall Rules Policy'
+    $newPolicyName = $policyName + '-' + $fwRuleGroup.Name
+    $policyDescription = 'Converted Firewall Rules Policy'
 
     # New Settings Catalog policy start and end
 
     $JSONPolicyStart = @"
 {
-    "description": "$PolicyDescription",
-    "name": "$NewPolicyName",
+    "description": "$policyDescription",
+    "name": "$newPolicyName",
     "platforms": "windows10",
     "technologies@odata.type": "#microsoft.graph.deviceManagementConfigurationTechnologies",
     "technologies": "mdm,microsoftSense",
     "templateReference": {
-            "@odata.type": "#microsoft.graph.deviceManagementConfigurationPolicyTemplateReference",
-            "templateId": "19c8aa67-f286-4861-9aa0-f23541d31680_1",
-            "templateFamily@odata.type": "#microsoft.graph.deviceManagementConfigurationTemplateFamily",
-            "templateFamily": "endpointSecurityFirewall",
-            "templateDisplayName": "Microsoft Defender Firewall Rules",
-            "templateDisplayVersion": "Version 1"
-        },
+        "@odata.type": "#microsoft.graph.deviceManagementConfigurationPolicyTemplateReference",
+        "templateId": "19c8aa67-f286-4861-9aa0-f23541d31680_1",
+        "templateFamily@odata.type": "#microsoft.graph.deviceManagementConfigurationTemplateFamily",
+        "templateFamily": "endpointSecurityFirewall",
+        "templateDisplayName": "Microsoft Defender Firewall Rules",
+        "templateDisplayVersion": "Version 1"
+    },
     "settings": [
         {
             "@odata.type": "#microsoft.graph.deviceManagementConfigurationSetting",
@@ -452,38 +399,38 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
     # Processing the rules
     $JSONAllRules = @()
-    $Rules = $FWRuleGroup.Group
+    $rules = $fwRuleGroup.Group
     $RuleNameCount = 0
-    foreach ($Rule in $Rules) {
+    foreach ($rule in $rules) {
 
         # Capturing existing rules with duplicate names, as Settings Catalog will not allow duplicates
-        $DuplicateNames = $Rules.displayName | Group-Object | Where-Object { $_.count -gt 1 }
+        $duplicateNames = $rules.displayName | Group-Object | Where-Object { $_.count -gt 1 }
 
         # Blank Out variables as not all rules have each variable
         Clear-Variable JSONRule*
         Clear-Variable -Name ('Name', 'Description', 'Direction', 'Action', 'FWProfiles', 'PackageFamilyName', 'FilePath', 'Service', 'Protocol', 'LocalPorts', 'RemotePorts', 'Interfaces', 'UseAnyLocalAddresses', 'LocalAddresses', 'UseAnyRemoteAddresses', 'RemoteAddresses') -ErrorAction Ignore
 
         # Capturing the Rule Data
-        $Name = $Rule.displayName
-        if ($DuplicateNames.name -contains $Name) {
-            $Name = $Name + '-' + $RuleNameCount++
+        $name = $rule.displayName
+        if ($duplicateNames.name -contains $name) {
+            $name = $name + '-' + $RuleNameCount++
         }
-        $Description = $Rule.description
-        $Direction = $Rule.trafficDirection
-        $Action = $Rule.action
-        $FWProfiles = $Rule.profileTypes
-        $PackageFamilyName = $Rule.packageFamilyName
-        $FilePath = ($Rule.filePath).Replace('\', '\\')
-        $Service = $Rule.serviceName
-        $Protocol = $Rule.protocol
-        $LocalPorts = $Rule.localPortRanges
-        $RemotePorts = $Rule.remotePortRanges
-        $Interfaces = $Rule.interfaceTypes
-        $AuthUsers = $Rule.localUserAuthorizations
-        $UseAnyLocalAddresses = $Rule.useAnyLocalAddressRange
-        $LocalAddresses = $Rule.actualLocalAddressRanges
-        $UseAnyRemoteAddresses = $Rule.useAnyRemoteAddressRange
-        $RemoteAddresses = $Rule.actualRemoteAddressRanges
+        $description = $rule.description
+        $direction = $rule.trafficDirection
+        $action = $rule.action
+        $fwProfiles = $rule.profileTypes
+        $packageFamilyName = $rule.packageFamilyName
+        $filePath = ($rule.filePath).Replace('\', '\\')
+        $service = $rule.serviceName
+        $protocol = $rule.protocol
+        $localPorts = $rule.localPortRanges
+        $remotePorts = $rule.remotePortRanges
+        $interfaces = $rule.interfaceTypes
+        $authUsers = $rule.localUserAuthorizations
+        $useAnyLocalAddresses = $rule.useAnyLocalAddressRange
+        $localAddresses = $rule.actualLocalAddressRanges
+        $useAnyRemoteAddresses = $rule.useAnyRemoteAddressRange
+        $remoteAddresses = $rule.actualRemoteAddressRanges
 
         # Setting the Start of each rule
         $JSONRuleStart = @'
@@ -495,7 +442,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 '@
 
         # JSON data is different for first rule in the policy
-        if ($Rule -eq $Rules[0]) {
+        if ($rule -eq $rules[0]) {
             # Rule Name
             $JSONRuleName = @"
         {
@@ -507,7 +454,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             },
             "simpleSettingValue": {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                "value": "$Name",
+                "value": "$name",
                 "settingValueTemplateReference": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                     "settingValueTemplateId": "12994a33-6185-4c3d-a0e8-69316f6293ea",
@@ -553,7 +500,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             },
             "choiceSettingValue": {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-                "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction_$Direction",
+                "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction_$direction",
                 "settingValueTemplateReference": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                     "settingValueTemplateId": "8b45e13b-952d-4164-bbac-37f4e97b7985",
@@ -589,7 +536,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             },
 '@#>
             # Protocol
-            if ($null -ne $Protocol) {
+            if ($null -ne $protocol) {
                 $JSONRuleProtocol = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -600,7 +547,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                     },
                 "simpleSettingValue": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationIntegerSettingValue",
-                    "value": "$Protocol",
+                    "value": "$protocol",
                     "settingValueTemplateReference": {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                         "settingValueTemplateId": "27d0d86c-d87d-473b-a41c-eef503d8baec",
@@ -613,7 +560,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Local Address Ranges
-            if ($UseAnyLocalAddresses -eq $false) {
+            if ($useAnyLocalAddresses -eq $false) {
                 $JSONRuleLocalAddressRangeStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -627,9 +574,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONLocalAddresses = @()
-                foreach ($LocalAddress in $LocalAddresses) {
+                foreach ($LocalAddress in $localAddresses) {
                     # Last address in the set
-                    if (($LocalAddress -eq $LocalAddresses[-1]) -or ($LocalAddresses.count -eq '1')) {
+                    if (($LocalAddress -eq $localAddresses[-1]) -or ($localAddresses.count -eq '1')) {
                         $JSONRuleLocalAddress = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -661,7 +608,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Interface Type
-            if ($Interfaces -ne 'notConfigured') {
+            if ($interfaces -ne 'notConfigured') {
                 $JSONRuleInterface = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingCollectionInstance",
@@ -686,7 +633,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Package Family Name
-            If (!([string]::IsNullOrEmpty($PackageFamilyName))) {
+            If (!([string]::IsNullOrEmpty($packageFamilyName))) {
                 $JSONRulePackageFamily = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -697,7 +644,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 },
                 "simpleSettingValue": {
                   "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                  "value": "$PackageFamilyName",
+                  "value": "$packageFamilyName",
                   "settingValueTemplateReference": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                     "settingValueTemplateId": "a9b123c6-1c6f-4de3-8840-34f91dfb9422",
@@ -710,7 +657,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # App File Path
-            if (!([string]::IsNullOrEmpty($FilePath))) {
+            if (!([string]::IsNullOrEmpty($filePath))) {
                 $JSONRuleFilePath = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -721,7 +668,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 },
                 "simpleSettingValue": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                    "value": "$FilePath",
+                    "value": "$filePath",
                     "settingValueTemplateReference": {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                         "settingValueTemplateId": "8c94fefa-67e5-40b5-8d97-6fca4f0c1e98",
@@ -734,7 +681,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Authorized Users
-            if (!([string]::IsNullOrEmpty($AuthUsers))) {
+            if (!([string]::IsNullOrEmpty($authUsers))) {
                 $JSONRuleAuthUsersStart = @'
                 {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -748,9 +695,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONAuthUsers = @()
-                foreach ($AuthUser in $AuthUsers) {
+                foreach ($AuthUser in $authUsers) {
                     # Last address in the set
-                    if (($AuthUser -eq $AuthUsers[-1]) -or ($AuthUsers.count -eq '1')) {
+                    if (($AuthUser -eq $authUsers[-1]) -or ($authUsers.count -eq '1')) {
                         $JSONRuleAuthUser = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -780,7 +727,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 $JSONRuleAuthUsers = $JSONRuleAuthUsersStart + $JSONAuthUsers + $JSONRuleAuthUsersEnd
             }
             # Remote Ports
-            if (!([string]::IsNullOrEmpty($RemotePorts))) {
+            if (!([string]::IsNullOrEmpty($remotePorts))) {
                 $JSONRuleRemotePortsStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -794,9 +741,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONRemotePorts = @()
-                foreach ($RemotePort in $RemotePorts) {
+                foreach ($RemotePort in $remotePorts) {
                     # Last address in the set
-                    if (($RemotePort -eq $RemotePorts[-1]) -or ($RemotePorts.count -eq '1')) {
+                    if (($RemotePort -eq $remotePorts[-1]) -or ($remotePorts.count -eq '1')) {
                         $JSONRuleRemotePort = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -828,7 +775,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Firewall Profile
-            if ($FWProfiles -ne 'notConfigured') {
+            if ($fwProfiles -ne 'notConfigured') {
                 $JSONRuleFWProfileStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingCollectionInstance",
@@ -843,14 +790,14 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 '@
 
                 $JSONRuleFWProfileTypes = @()
-                foreach ($FWProfile in $FWProfiles) {
+                foreach ($FWProfile in $fwProfiles) {
                     Switch ($FWProfile) {
                         'domain' { $FWProfileNo = '1' }
                         'private' { $FWProfileNo = '2' }
                         'public' { $FWProfileNo = '4' }
                     }
 
-                    if (($FWProfile -eq $FWProfiles[-1]) -or ($FWProfiles.count -eq '1')) {
+                    if (($FWProfile -eq $fwProfiles[-1]) -or ($fwProfiles.count -eq '1')) {
                         $JSONRuleFWProfileType = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
@@ -888,7 +835,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Service Name
-            if (!([string]::IsNullOrEmpty($Service))) {
+            if (!([string]::IsNullOrEmpty($service))) {
                 $JSONRuleService = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -899,7 +846,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 },
                 "simpleSettingValue": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                    "value": "$Service",
+                    "value": "$service",
                     "settingValueTemplateReference": {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                         "settingValueTemplateId": "c77294ec-795e-43dc-9af6-775b3b2f911d",
@@ -912,7 +859,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Local Ports
-            if ((!([string]::IsNullOrEmpty($LocalPorts)))) {
+            if ((!([string]::IsNullOrEmpty($localPorts)))) {
                 $JSONRuleLocalPortsStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -926,9 +873,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONLocalPorts = @()
-                foreach ($LocalPort in $LocalPorts) {
+                foreach ($LocalPort in $localPorts) {
                     # Last address in the set
-                    if (($LocalPort -eq $LocalPorts[-1]) -or ($LocalPorts.count -eq '1')) {
+                    if (($LocalPort -eq $localPorts[-1]) -or ($localPorts.count -eq '1')) {
                         $JSONRuleLocalPort = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -960,7 +907,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Remote Address Ranges
-            if ($UseAnyRemoteAddresses -eq $false) {
+            if ($useAnyRemoteAddresses -eq $false) {
                 $JSONRuleRemoteAddressRangeStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -974,9 +921,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONRemoteAddresses = @()
-                foreach ($RemoteAddress in $RemoteAddresses) {
+                foreach ($RemoteAddress in $remoteAddresses) {
                     # Last address in the set
-                    if (($RemoteAddress -eq $RemoteAddresses[-1]) -or ($RemoteAddresses.count -eq '1')) {
+                    if (($RemoteAddress -eq $remoteAddresses[-1]) -or ($remoteAddresses.count -eq '1')) {
                         $JSONRuleRemoteAddress = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -1008,7 +955,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Rule Action
-            Switch ($Action) {
+            Switch ($action) {
                 'allowed' { $ActionType = '1' }
                 'blocked' { $ActionType = '0' }
             }
@@ -1046,7 +993,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             },
             "simpleSettingValue": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                    "value": "$Description",
+                    "value": "$description",
                     "settingValueTemplateReference": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                     "settingValueTemplateId": "18ab9c3a-b6be-4995-9438-289c34eee294",
@@ -1058,7 +1005,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 "@
 
             #Rule ending
-            if ($Rule -eq $Rules[-1]) {
+            if ($rule -eq $rules[-1]) {
                 $JSONRuleEnd = @'
                 ]
             }
@@ -1088,7 +1035,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             "simpleSettingValue": {
               "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
               "settingValueTemplateReference": null,
-              "value": "$Name"
+              "value": "$name"
             }
         },
 
@@ -1120,7 +1067,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             "choiceSettingValue": {
               "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
               "settingValueTemplateReference": null,
-              "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction_$Direction",
+              "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction_$direction",
               "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
               "children": []
             }
@@ -1144,7 +1091,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             },
 '@#>
             # Protocol
-            if ($null -ne $Protocol) {
+            if ($null -ne $protocol) {
                 $JSONRuleProtocol = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -1153,7 +1100,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 "simpleSettingValue": {
                   "@odata.type": "#microsoft.graph.deviceManagementConfigurationIntegerSettingValue",
                   "settingValueTemplateReference": null,
-                  "value": "$Protocol"
+                  "value": "$protocol"
                 }
             },
 
@@ -1161,7 +1108,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Local Address Ranges
-            if ($UseAnyLocalAddresses -eq $false) {
+            if ($useAnyLocalAddresses -eq $false) {
                 $JSONRuleLocalAddressRangeStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -1172,9 +1119,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONLocalAddresses = @()
-                foreach ($LocalAddress in $LocalAddresses) {
+                foreach ($LocalAddress in $localAddresses) {
                     # Last address in the set
-                    if (($LocalAddress -eq $LocalAddresses[-1]) -or ($LocalAddresses.count -eq '1')) {
+                    if (($LocalAddress -eq $localAddresses[-1]) -or ($localAddresses.count -eq '1')) {
                         $JSONRuleLocalAddress = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -1205,7 +1152,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Interface Type
-            if ($Interfaces -ne 'notConfigured') {
+            if ($interfaces -ne 'notConfigured') {
                 $JSONRuleInterface = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingCollectionInstance",
@@ -1227,7 +1174,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Package Family Name
-            If (!([string]::IsNullOrEmpty($PackageFamilyName))) {
+            If (!([string]::IsNullOrEmpty($packageFamilyName))) {
                 $JSONRulePackageFamily = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -1236,7 +1183,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 "simpleSettingValue": {
                   "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                   "settingValueTemplateReference": null,
-                  "value": "$PackageFamilyName"
+                  "value": "$packageFamilyName"
                 }
             },
 
@@ -1244,7 +1191,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # App File Path
-            if (!([string]::IsNullOrEmpty($FilePath))) {
+            if (!([string]::IsNullOrEmpty($filePath))) {
                 $JSONRuleFilePath = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -1253,7 +1200,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 "simpleSettingValue": {
                   "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                   "settingValueTemplateReference": null,
-                  "value": "$FilePath"
+                  "value": "$filePath"
                 }
             },
 
@@ -1261,7 +1208,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Authorized Users
-            if (!([string]::IsNullOrEmpty($AuthUsers))) {
+            if (!([string]::IsNullOrEmpty($authUsers))) {
                 $JSONRuleAuthUsersStart = @'
                 {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -1272,9 +1219,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONAuthUsers = @()
-                foreach ($AuthUser in $AuthUsers) {
+                foreach ($AuthUser in $authUsers) {
                     # Last address in the set
-                    if (($AuthUser -eq $AuthUsers[-1]) -or ($AuthUsers.count -eq '1')) {
+                    if (($AuthUser -eq $authUsers[-1]) -or ($authUsers.count -eq '1')) {
                         $JSONRuleAuthUser = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -1305,7 +1252,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Remote Ports
-            if (!([string]::IsNullOrEmpty($RemotePorts))) {
+            if (!([string]::IsNullOrEmpty($remotePorts))) {
                 $JSONRuleRemotePortsStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -1316,9 +1263,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONRemotePorts = @()
-                foreach ($RemotePort in $RemotePorts) {
+                foreach ($RemotePort in $remotePorts) {
                     # Last address in the set
-                    if (($RemotePort -eq $RemotePorts[-1]) -or ($RemotePorts.count -eq '1')) {
+                    if (($RemotePort -eq $remotePorts[-1]) -or ($remotePorts.count -eq '1')) {
                         $JSONRuleRemotePort = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -1350,7 +1297,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 
             # Firewall Profile
-            if ($FWProfiles -ne 'notConfigured') {
+            if ($fwProfiles -ne 'notConfigured') {
                 $JSONRuleFWProfileStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingCollectionInstance",
@@ -1362,14 +1309,14 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 '@
 
                 $JSONRuleFWProfileTypes = @()
-                foreach ($FWProfile in $FWProfiles) {
+                foreach ($FWProfile in $fwProfiles) {
                     Switch ($FWProfile) {
                         'domain' { $FWProfileNo = '1' }
                         'private' { $FWProfileNo = '2' }
                         'public' { $FWProfileNo = '4' }
                     }
 
-                    if (($FWProfile -eq $FWProfiles[-1]) -or ($FWProfiles.count -eq '1')) {
+                    if (($FWProfile -eq $fwProfiles[-1]) -or ($fwProfiles.count -eq '1')) {
                         $JSONRuleFWProfileType = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
@@ -1407,7 +1354,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Service Name
-            if (!([string]::IsNullOrEmpty($Service))) {
+            if (!([string]::IsNullOrEmpty($service))) {
                 $JSONRuleService = @"
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
@@ -1416,7 +1363,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
                 "simpleSettingValue": {
                   "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                   "settingValueTemplateReference": null,
-                  "value": "$Service"
+                  "value": "$service"
                 }
             },
 
@@ -1424,7 +1371,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Local Ports
-            if ((!([string]::IsNullOrEmpty($LocalPorts)))) {
+            if ((!([string]::IsNullOrEmpty($localPorts)))) {
                 $JSONRuleLocalPortsStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -1435,9 +1382,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONLocalPorts = @()
-                foreach ($LocalPort in $LocalPorts) {
+                foreach ($LocalPort in $localPorts) {
                     # Last address in the set
-                    if (($LocalPort -eq $LocalPorts[-1]) -or ($LocalPorts.count -eq '1')) {
+                    if (($LocalPort -eq $localPorts[-1]) -or ($localPorts.count -eq '1')) {
                         $JSONRuleLocalPort = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -1468,7 +1415,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Remote Address Ranges
-            if ($UseAnyRemoteAddresses -eq $false) {
+            if ($useAnyRemoteAddresses -eq $false) {
                 $JSONRuleRemoteAddressRangeStart = @'
             {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
@@ -1479,9 +1426,9 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
 '@
                 $JSONRemoteAddresses = @()
-                foreach ($RemoteAddress in $RemoteAddresses) {
+                foreach ($RemoteAddress in $remoteAddresses) {
                     # Last address in the set
-                    if (($RemoteAddress -eq $RemoteAddresses[-1]) -or ($RemoteAddresses.count -eq '1')) {
+                    if (($RemoteAddress -eq $remoteAddresses[-1]) -or ($remoteAddresses.count -eq '1')) {
                         $JSONRuleRemoteAddress = @"
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
@@ -1512,7 +1459,7 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             }
 
             # Rule Action
-            Switch ($Action) {
+            Switch ($action) {
                 'allowed' { $ActionType = '1' }
                 'blocked' { $ActionType = '0' }
             }
@@ -1541,14 +1488,14 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             "simpleSettingValue": {
               "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
               "settingValueTemplateReference": null,
-              "value": "$Description"
+              "value": "$description"
             }
         }
 
 "@
 
             #Rule ending
-            if ($Rule -eq $Rules[-1]) {
+            if ($rule -eq $rules[-1]) {
                 $JSONRuleEnd = @'
                 ]
             }
@@ -1571,13 +1518,13 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
     # Combining the all the JSON to form the Settings Catalog policy
     $JSONPolicy = $JSONPolicyStart + $JSONAllRules + $JSONPolicyEnd
-    Write-Host "Creating new Settings Catalog Policy $NewPolicyName" -ForegroundColor Cyan
+    Write-Host "Creating new Settings Catalog Policy $newPolicyName" -ForegroundColor Cyan
     Try {
         New-DeviceSettingsCatalog -JSON $JSONPolicy
-        Write-Host "Successfully created new Settings Catalog Policy $NewPolicyName" -ForegroundColor Green
+        Write-Host "Successfully created new Settings Catalog Policy $newPolicyName" -ForegroundColor Green
     }
     Catch {
-        Write-Host "Unable to create new Settings Catalog Policy $NewPolicyName, script will end." -ForegroundColor Red
+        Write-Host "Unable to create new Settings Catalog Policy $newPolicyName, script will end." -ForegroundColor Red
         Break
     }
 
