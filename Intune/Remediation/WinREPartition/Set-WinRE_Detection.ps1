@@ -25,5 +25,5 @@ Try {
 }
 Catch {
     Write-Output 'Recovery Partition not found.'
-    Exit 1
+    Exit 2000
 }

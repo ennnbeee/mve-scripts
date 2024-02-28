@@ -5,5 +5,5 @@ Try {
 }
 Catch {
     Write-Output "Windows Store Apps not updated."
-    Exit 1
+    Exit 2000
 }

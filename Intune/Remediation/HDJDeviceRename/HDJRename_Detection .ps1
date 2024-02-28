@@ -29,6 +29,6 @@ Try {
 }
 Catch {
     Write-Error $_.Exception
-    Exit 1
+    Exit 2000
 }
 

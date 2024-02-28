@@ -1,4 +1,4 @@
-$domain = 'ennbee.local' 
+$domain = 'ennbee.local'
 $waittime = '60'
 
 Try {
@@ -15,7 +15,7 @@ Try {
     Else {
         $newName = 'D-' + $Serial
     }
-    
+
     $newName = $newName.Replace(' ', '')
     if ($newName.Length -ge 15) {
         $newName = $newName.substring(0, 15)
@@ -29,4 +29,5 @@ Try {
 }
 Catch {
     Write-Error $_.Exception
+    Exit 2000
 }

@@ -11,5 +11,5 @@ try {
 }
 catch {
     Write-Output "Unable to query Store App Update status."
-    Exit 1
+    Exit 2000
 }

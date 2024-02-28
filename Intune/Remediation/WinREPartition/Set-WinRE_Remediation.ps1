@@ -62,5 +62,5 @@ Try {
 }
 Catch {
     Write-Output 'Unable to update Recovery Partition on the device.'
-    Exit 1
+    Exit 2000
 }
