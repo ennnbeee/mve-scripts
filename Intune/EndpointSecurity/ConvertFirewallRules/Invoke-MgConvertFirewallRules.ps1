@@ -300,11 +300,11 @@ else {
 #endregion authentication
 
 
-Write-host "█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀█ █░█ █░░ █▀▀   █▀▀ █▀█ █▄░█ █░█ █▀▀ █▀█ ▀█▀ █▀▀ █▀█" -ForegroundColor Red
-Write-host "█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   █▀▄ █▄█ █▄▄ ██▄   █▄▄ █▄█ █░▀█ ▀▄▀ ██▄ █▀▄ ░█░ ██▄ █▀▄" -ForegroundColor Red
+Write-Host '█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀█ █░█ █░░ █▀▀   █▀▀ █▀█ █▄░█ █░█ █▀▀ █▀█ ▀█▀ █▀▀ █▀█' -ForegroundColor Red
+Write-Host '█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   █▀▄ █▄█ █▄▄ ██▄   █▄▄ █▄█ █░▀█ ▀▄▀ ██▄ █▀▄ ░█░ ██▄ █▀▄' -ForegroundColor Red
 
 Write-Host ('Connected to Tenant {0} as account {1}' -f $graphDetails.TenantId, $graphDetails.Account) -ForegroundColor Green
-Write-Host "Starting the Intune Firewall Converter Script..." -ForegroundColor Magenta
+Write-Host 'Starting the Intune Firewall Converter Script...' -ForegroundColor Magenta
 Write-Host
 Write-Host 'The name of the Firewall Rules to be converted:' -ForegroundColor Green
 $oldFirewallPolicies
