@@ -1,14 +1,49 @@
+<#
+  .SYNOPSIS
+  Converts existing Firewall Rules profiles to Settings Catalog versions.
+
+  .DESCRIPTION
+  The Invoke-MgConvertFirewallRules.ps1 script using Graph PowerShell tooling to capture all details of existing migrated
+  firewall rules, and reprocesses them in the new Settings Catalog format.
+
+  .PARAMETER tenantId
+  Provide the Id of the tenant to connecto to.
+
+  .PARAMETER policyName
+  The name of the new Firewall Rules policy, or in the event of multiple rules, each create Firewall Rule profile.
+
+  .PARAMETER extensionAttribute
+  Configure the device extensionAttribute to be used for tagging Entra ID device objects
+  with their Feature Update Readiness Assessment risk score.
+  Choice of extensionAttribute1 to extensionAttribute15
+
+  .PARAMETER Scopes
+  The scopes used to connect to the Graph API using PowerShell.
+  Default scopes configured are:
+  'Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
+
+  .INPUTS
+  None. You can't pipe objects to Invoke-MgConvertFirewallRules.ps1
+
+  .OUTPUTS
+  None. Invoke-MgConvertFirewallRules.ps1 doesn't generate any output.
+
+  .EXAMPLE
+  PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -extensionAttribute extensionAttribute15
+
+#>
+
 [CmdletBinding()]
 param(
 
     [Parameter(Mandatory = $true)]
-    [String]$User,
+    [String]$tenantId,
 
     [Parameter(Mandatory = $true)]
-    [String]$PolicyName,
+    [String]$policyName,
 
     [Parameter(Mandatory = $true)]
-    [String[]]$FirewallPolicies
+    [String[]]$oldFirewallPolicies
 
 )
 
@@ -335,14 +370,14 @@ else {
 # Get the existing FW policy and settings
 
 # Testing
-#$PolicyName = 'New'
-#$FirewallPolicies = @('MIG_CO_FW_DefenderFirewallRules')
+#$policyName = 'New'
+#$oldFirewallPolicies = @('MIG_CO_FW_DefenderFirewallRules')
 
 # Variables for Template IDs and to capture Rules
 $FWRules = @()
 $FWTemplateID = '4356d05c-a4ab-4a07-9ece-739f7c792910'
 
-foreach ($FirewallPolicy in $FirewallPolicies) {
+foreach ($FirewallPolicy in $oldFirewallPolicies) {
     $EndpointSecProfile = Get-DeviceEndpointSecProfile -Name $FirewallPolicy
     if (($null -eq $EndpointSecProfile) -or ($EndpointSecProfile.templateId -ne $FWTemplateID)) {
         Write-Host "Unable to find Legacy Firewall Rule Profile named $FirewallPolicy or $FirewallPolicy Profile is not a Firewall Rule profile, script will end." -ForegroundColor Red
@@ -372,7 +407,7 @@ $FWRuleGroups = $FWRules | Group-Object -Property { [math]::Floor($counter.Value
 foreach ($FWRuleGroup in $FWRuleGroups) {
 
     # Sets the Name of the policies
-    $NewPolicyName = $PolicyName + '-' + $FWRuleGroup.Name
+    $NewPolicyName = $policyName + '-' + $FWRuleGroup.Name
     $PolicyDescription = 'Migrated Firewall Rules Policy'
 
     # New Settings Catalog policy start and end
