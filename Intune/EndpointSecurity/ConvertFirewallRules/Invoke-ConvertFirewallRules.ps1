@@ -335,8 +335,8 @@ else {
 # Get the existing FW policy and settings
 
 # Testing
-#$PolicyName = 'COPE_FW_RulesMigrated'
-#$FirewallPolicies = @('LegacyRules-0', 'LegacyRules-1', 'LegacyRules-2', 'LegacyRules-3')
+$PolicyName = 'New'
+$FirewallPolicies = @('MIG_CO_FW_DefenderFirewallRules')
 
 # Variables for Template IDs and to capture Rules
 $FWRules = @()
@@ -1128,11 +1128,12 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
             # Local Address Ranges
             if ($UseAnyLocalAddresses -eq $false) {
                 $JSONRuleLocalAddressRangeStart = @'
-            "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
-            "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_localaddressranges",
-            "settingInstanceTemplateReference": null,
-            "simpleSettingCollectionValue@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSimpleSettingValue)",
-            "simpleSettingCollectionValue": [
+            {
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
+                "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_localaddressranges",
+                "settingInstanceTemplateReference": null,
+                "simpleSettingCollectionValue@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSimpleSettingValue)",
+                "simpleSettingCollectionValue": [
 
 '@
                 $JSONLocalAddresses = @()
@@ -1535,6 +1536,8 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
     # Combining the all the JSON to form the Settings Catalog policy
     $JSONPolicy = $JSONPolicyStart + $JSONAllRules + $JSONPolicyEnd
+
+    $JSONPolicy | Out-File -FilePath .\rule.json
     Write-Host "Creating new Settings Catalog Policy $NewPolicyName" -ForegroundColor Cyan
     Try {
         New-DeviceSettingsCatalog -JSON $JSONPolicy
