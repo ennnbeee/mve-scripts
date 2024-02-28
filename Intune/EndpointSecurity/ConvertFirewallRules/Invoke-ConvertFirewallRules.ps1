@@ -1536,8 +1536,6 @@ foreach ($FWRuleGroup in $FWRuleGroups) {
 
     # Combining the all the JSON to form the Settings Catalog policy
     $JSONPolicy = $JSONPolicyStart + $JSONAllRules + $JSONPolicyEnd
-
-    $JSONPolicy | Out-File -FilePath .\rule.json
     Write-Host "Creating new Settings Catalog Policy $NewPolicyName" -ForegroundColor Cyan
     Try {
         New-DeviceSettingsCatalog -JSON $JSONPolicy
