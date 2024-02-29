@@ -126,7 +126,7 @@ Function Get-DeviceEndpointSecProfile() {
         }
         Else {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest-Method Get -Uri $uri).value
+            (Invoke-MgGraphRequest -Method Get -Uri $uri).value
         }
     }
     catch {
@@ -302,7 +302,7 @@ else {
 
 Write-Host '█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀█ █░█ █░░ █▀▀   █▀▀ █▀█ █▄░█ █░█ █▀▀ █▀█ ▀█▀ █▀▀ █▀█' -ForegroundColor Red
 Write-Host '█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   █▀▄ █▄█ █▄▄ ██▄   █▄▄ █▄█ █░▀█ ▀▄▀ ██▄ █▀▄ ░█░ ██▄ █▀▄' -ForegroundColor Red
-
+Write-Host
 Write-Host ('Connected to Tenant {0} as account {1}' -f $graphDetails.TenantId, $graphDetails.Account) -ForegroundColor Green
 Write-Host 'Starting the Intune Firewall Converter Script...' -ForegroundColor Magenta
 Write-Host
@@ -1529,3 +1529,5 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
     }
 
 }
+
+Disconnect-MgGraph
