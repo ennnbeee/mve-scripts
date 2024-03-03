@@ -130,8 +130,8 @@ Function Get-DeviceReusableSetting() {
 
 #region authentication
 
-if (Get-MgContext){
-    Write-Host "Disconnecting from existing Graph session." -ForegroundColor Cyan
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
     Disconnect-MgGraph
 }
 $moduleName = 'Microsoft.Graph'
@@ -175,16 +175,16 @@ $serviceAreas = 'MEM'
 
 Write-host"█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀" -ForegroundColor Red
 Write-host"█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄" -ForegroundColor Red
-Write-host
+Write-Host
 Write-host"█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀ █▀▀ ▀█▀ ▀█▀ █ █▄░█ █▀▀   █▀▀ █▀█ █▀▀ ▄▀█ ▀█▀ █▀█ █▀█" -ForegroundColor Red
 Write-host"█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   ▄█ ██▄ ░█░ ░█░ █ █░▀█ █▄█   █▄▄ █▀▄ ██▄ █▀█ ░█░ █▄█ █▀▄" -ForegroundColor Red
-Write-host
+Write-Host
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
 
 foreach ($serviceArea in $serviceAreas) {
-    Write-host "Getting Network Endpoints for $serviceArea Service" -ForegroundColor Cyan
+    Write-Host "Getting Network Endpoints for $serviceArea Service" -ForegroundColor Cyan
     # No endpoint URL for Microsoft Store
     if ($serviceArea -eq 'Store') {
         $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Store URLs'; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = @('displaycatalog.md.mp.microsoft.com', 'purchase.md.mp.microsoft.com', 'licensing.mp.microsoft.com', 'storeedgefd.dsx.mp.microsoft.com'); ips = ''; ipsName = '' }
@@ -202,7 +202,7 @@ foreach ($serviceArea in $serviceAreas) {
         }
 
         if ($groupBy -eq 'ports') {
-            Write-host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
+            Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
             $tcpGroups = $endpoints | Where-Object { $null -ne $_.tcpPorts } | Group-Object -Property { $_.tcpPorts }
 
             foreach ($tcpGroup in $tcpGroups) {
@@ -252,7 +252,7 @@ foreach ($serviceArea in $serviceAreas) {
             if (($urls.Count + 1) -le 100) {
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
             }
-            else{
+            else {
                 $displayName = $name + ' IPs'
                 $description = "IP Network Endpoints for $name"
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = ''; ips = $ips; ipsName = $ipsName }
@@ -271,15 +271,15 @@ foreach ($serviceArea in $serviceAreas) {
     }
 }
 
-Write-Host "Please review the Microsoft Intune Reusable Firewall Settings" -ForegroundColor Yellow
+Write-Host 'Please review the Microsoft Intune Reusable Firewall Settings' -ForegroundColor Yellow
 Write-Host
-Write-Host "Reusable Firewall Setting Names:" -ForegroundColor Cyan
+Write-Host 'Reusable Firewall Setting Names:' -ForegroundColor Cyan
 Write-Host "$($reusableSettings.displayName)" -ForegroundColor Magenta
 Write-Host
-Write-Host "Reusable Firewall Setting URls:" -ForegroundColor Cyan
+Write-Host 'Reusable Firewall Setting URls:' -ForegroundColor Cyan
 Write-Host "$($reusableSettings.urls)" -ForegroundColor Magenta
 Write-Host
-Write-Host "Reusable Firewall Setting IP:" -ForegroundColor Cyan
+Write-Host 'Reusable Firewall Setting IP:' -ForegroundColor Cyan
 Write-Host "$($reusableSettings.ips)" -ForegroundColor Magenta
 Write-Host
 Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
@@ -508,7 +508,7 @@ foreach ($reusableSetting in $reusableSettings) {
         Write-Host "Successfully created Reusable Firewall Setting for $($reusableSetting.displayName) in Microsoft Intune" -ForegroundColor Green
     }
     Catch {
-        Write-Host ""
+        Write-Host ''
     }
 
 
