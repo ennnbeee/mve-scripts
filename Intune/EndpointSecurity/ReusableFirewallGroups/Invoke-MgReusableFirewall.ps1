@@ -10,6 +10,13 @@
   .PARAMETER tenantId
   Provide the Id of the tenant to connecto to.
 
+  .PARAMETER tenantId
+  Provide the name of the tenant, without the onmicrosoft.com domain, used to populate URLs.
+
+  .PARAMETER instance
+  The web service end point insance, choice of
+  Worldwide | China | USGovDoD | USGovGCCHigh
+
   .PARAMETER serviceAreas
   An array of service areas pulled from the web service.
   Approved options: MEM, Common, Exchange, SharePoint, Skype, Store.
@@ -29,7 +36,7 @@
   None. Invoke-MgReusableFirewall.ps1 doesn't generate any output.
 
   .EXAMPLE
-  PS> .\Invoke-MgReusableFirewall.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -serviceAreas 'Common, MEM' -groupBy 'service'
+  PS> .\Invoke-MgReusableFirewall.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -tenantName 'ennnbeee' -instance Worldwide -serviceAreas 'Common, MEM' -groupBy 'service'
 
 #>
 [CmdletBinding()]
@@ -38,6 +45,13 @@ param(
 
     [Parameter(Mandatory = $true)]
     [String]$tenantId,
+
+    [Parameter(Mandatory = $false)]
+    [String]$tenantName,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Worldwide', 'China', 'USGovDoD', 'USGovGCCHigh')]
+    [String]$instance = 'Worldwide',
 
     [Parameter(Mandatory = $false)]
     [String[]]$serviceAreas = @('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support'),
@@ -129,7 +143,6 @@ Function Get-DeviceReusableSetting() {
 #endregion Functions
 
 #region authentication
-
 if (Get-MgContext) {
     Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
     Disconnect-MgGraph
@@ -169,44 +182,50 @@ else {
 #region script
 
 $tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
-$groupBy = 'service'
+$tenantName = 'phxconnickbenton'
 $serviceAreas = 'MEM'
+$groupBy = 'service'
 
-
-Write-host "█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀" -ForegroundColor Red
-Write-host "█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄" -ForegroundColor Red
+Write-Host '█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀' -ForegroundColor Red
+Write-Host '█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄' -ForegroundColor Red
 Write-Host
-Write-host "█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀ █▀▀ ▀█▀ ▀█▀ █ █▄░█ █▀▀   █▀▀ █▀█ █▀▀ ▄▀█ ▀█▀ █▀█ █▀█" -ForegroundColor Red
-Write-host "█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   ▄█ ██▄ ░█░ ░█░ █ █░▀█ █▄█   █▄▄ █▀▄ ██▄ █▀█ ░█░ █▄█ █▀▄" -ForegroundColor Red
+Write-Host '█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀ █▀▀ ▀█▀ ▀█▀ █ █▄░█ █▀▀   █▀▀ █▀█ █▀▀ ▄▀█ ▀█▀ █▀█ █▀█' -ForegroundColor Red
+Write-Host '█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   ▄█ ██▄ ░█░ ░█░ █ █░▀█ █▄█   █▄▄ █▀▄ ██▄ █▀█ ░█░ █▄█ █▀▄' -ForegroundColor Red
 Write-Host
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
 
-$webService = (Invoke-RestMethod -Uri ("https://endpoints.office.com/version/Worldwide?clientrequestid=" + ([GUID]::NewGuid()).Guid))
-
 foreach ($serviceArea in $serviceAreas) {
+
+    if ($tenantName) {
+        $webService = ("https://endpoints.office.com/endpoints/$instance`?`TenantName=$tenantName`&`ServiceAreas=$serviceArea`&`clientrequestid=" + ([GUID]::NewGuid()).Guid)
+    }
+    else {
+        $webService = ("https://endpoints.office.com/endpoints/$instance`?`ServiceAreas=$serviceArea`&`clientrequestid=" + ([GUID]::NewGuid()).Guid)
+    }
+
     Write-Host "Getting Network Endpoints for $serviceArea Service" -ForegroundColor Cyan
     # URLs and IPs that don't exist in the Web Service
-    if ($serviceArea -in 'Store','Stream','Support') {
+    if ($serviceArea -in 'Store', 'Stream', 'Support') {
         if ($serviceArea -eq 'Store') {
-            $reusableSettings += [pscustomobject]@{displayName = "Microsoft Store URLs $($webService.latest)"; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = @('displaycatalog.md.mp.microsoft.com', 'purchase.md.mp.microsoft.com', 'licensing.mp.microsoft.com', 'storeedgefd.dsx.mp.microsoft.com'); ips = $null; ipsName = $null }
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Store URLs'; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = @('displaycatalog.md.mp.microsoft.com', 'purchase.md.mp.microsoft.com', 'licensing.mp.microsoft.com', 'storeedgefd.dsx.mp.microsoft.com'); ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
-        if ($serviceArea -eq 'Stream'){
-            $reusableSettings += [pscustomobject]@{displayName = "Microsoft Stream URLs $($webService.latest)"; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = @('*.cloudapp.net', '*.api.microsoftstream.com', '*.notification.api.microsoftstream.com', 'amp.azure.net', 'api.microsoftstream.com', 'az416426.vo.msecnd.net', 's0.assets-yammer.com', 'vortex.data.microsoft.com', 'web.microsoftstream.com'); ips = $null; ipsName = $null }
+        if ($serviceArea -eq 'Stream') {
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Stream URLs'; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = @('*.cloudapp.net', '*.api.microsoftstream.com', '*.notification.api.microsoftstream.com', 'amp.azure.net', 'api.microsoftstream.com', 'az416426.vo.msecnd.net', 's0.assets-yammer.com', 'vortex.data.microsoft.com', 'web.microsoftstream.com'); ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
-        if ($serviceArea -eq 'Support'){
-            $reusableSettings += [pscustomobject]@{displayName = "Microsoft Support URLs $($webService.latest)"; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = @('autodiscover.outlook.com', 'officecdn.microsoft.com', 'api.diagnostics.office.com', 'apibasic.diagnostics.office.com', 'autodiscover-s.outlook.com', 'cloudcheckenabler.azurewebsites.net', 'login.live.com', 'login.microsoftonline.com', 'login.windows.net', 'o365diagtelemetry.trafficmanager.net', 'odc.officeapps.live.com', 'offcatedge.azureedge.net', 'officeapps.live.com', 'outlook.office365.com', 'outlookdiagnostics.azureedge.net', 'sara.api.support.microsoft.com', '*.msappproxy.net'); ips = $null; ipsName = $null }
+        if ($serviceArea -eq 'Support') {
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Support URLs'; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = @('autodiscover.outlook.com', 'officecdn.microsoft.com', 'api.diagnostics.office.com', 'apibasic.diagnostics.office.com', 'autodiscover-s.outlook.com', 'cloudcheckenabler.azurewebsites.net', 'login.live.com', 'login.microsoftonline.com', 'login.windows.net', 'o365diagtelemetry.trafficmanager.net', 'odc.officeapps.live.com', 'offcatedge.azureedge.net', 'officeapps.live.com', 'outlook.office365.com', 'outlookdiagnostics.azureedge.net', 'sara.api.support.microsoft.com', '*.msappproxy.net'); ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
-            # No endpoint URL for Microsoft Store
+        # No endpoint URL for Microsoft Store
 
-    <# No endpoint URL for O365 CDNs
+        <# No endpoint URL for O365 CDNs
     if ($serviceArea -eq 'azure') {
         #$reusableSettings += [pscustomobject]@{displayName = 'Azure URLs'; description = 'Network Endpoints for Azure on TCP Ports(s) 80,443'; urls = @('login.microsoftonline.com', '*.aadcdn.msftauth.net', '*.aadcdn.msftauthimages.net', '*.aadcdn.msauthimages.net', '*.logincdn.msftauth.net', 'login.live.com', '*.msauth.net', '*.aadcdn.microsoftonline-p.com', '*.microsoftonline-p.com', '*.portal.azure.com', '*.hosting.portal.azure.net', '*.reactblade.portal.azure.net', 'management.azure.com', '*.ext.azure.com', '*.graph.windows.net', '*.graph.microsoft.com', '*.account.microsoft.com', '*.bmx.azure.com', '*.subscriptionrp.trafficmanager.net', '*.signup.azure.com', 'aka.ms', '*.asazure.windows.net', '*.azconfig.io', '*.aad.azure.com', '*.aadconnecthealth.azure.com', 'ad.azure.com', 'adf.azure.com', 'api.aadrm.com', 'api.loganalytics.io', 'api.azrbac.mspim.azure.com', '*.applicationinsights.azure.com', 'appservice.azure.com', '*.arc.azure.net', 'asazure.windows.net', 'bastion.azure.com', 'batch.azure.com', 'catalogapi.azure.com', 'catalogartifact.azureedge.net', 'changeanalysis.azure.com', 'cognitiveservices.azure.com', 'config.office.com', 'cosmos.azure.com', '*.database.windows.net', 'datalake.azure.net', 'dev.azure.com', 'dev.azuresynapse.net', 'digitaltwins.azure.net', 'learn.microsoft.com', 'elm.iga.azure.com', 'eventhubs.azure.net', 'functions.azure.com', 'gallery.azure.com', 'go.microsoft.com', 'help.kusto.windows.net', 'identitygovernance.azure.com', 'iga.azure.com', 'informationprotection.azure.com', 'kusto.windows.net', 'learn.microsoft.com', 'logic.azure.com', 'marketplacedataprovider.azure.com', 'marketplaceemail.azure.com', 'media.azure.net', 'monitor.azure.com', '*.msidentity.com', 'mspim.azure.com', 'network.azure.com', 'purview.azure.com', 'quantum.azure.com', 'rest.media.azure.net', 'search.azure.com', 'servicebus.azure.net', 'servicebus.windows.net', 'shell.azure.com', 'sphere.azure.net', 'azure.status.microsoft', 'storage.azure.com', 'storage.azure.net', 'vault.azure.net', 'ux.console.azure.com'); ips = ''; ipsName = '' }
         $reusableSettings += [pscustomobject]@{displayName = 'Azure URLs'; description = 'Network Endpoints for Azure on TCP Ports(s) 80,443'; urls = @('login.microsoftonline.com', '*.aadcdn.msftauth.net', '*.aadcdn.msftauthimages.net', '*.aadcdn.msauthimages.net', '*.logincdn.msftauth.net', 'login.live.com', '*.msauth.net', '*.aadcdn.microsoftonline-p.com', '*.microsoftonline-p.com', '*.portal.azure.com', '*.hosting.portal.azure.net', '*.reactblade.portal.azure.net', 'management.azure.com', '*.ext.azure.com', '*.graph.windows.net', '*.graph.microsoft.com', '*.account.microsoft.com', '*.bmx.azure.com', '*.subscriptionrp.trafficmanager.net', '*.signup.azure.com', 'aka.ms'); ips = ''; ipsName = '' }
@@ -215,47 +234,62 @@ foreach ($serviceArea in $serviceAreas) {
     }
     else {
         try {
-            $endpoints = (Invoke-RestMethod -Uri ("https://endpoints.office.com/endpoints/WorldWide?ServiceAreas=$serviceArea`&`clientrequestid=" + ([GUID]::NewGuid()).Guid)) | Where-Object { $_.ServiceArea -eq $serviceArea }
-            Write-Host "Found $($endpoints.Count) Network Endpoints for $serviceArea Service" -ForegroundColor Green
+            $endpointSets = (Invoke-RestMethod -Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
+
+            Write-Host "Found $($endpointSets.Count) Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
 
         }
         catch {
-            Write-Host "Unable to get Network Endpoints for $serviceArea" -ForegroundColor Red
+            Write-Host "Unable to get Network Endpoints for $serviceArea from $webService" -ForegroundColor Red
             Write-Error $_.ErrorDetails
             break
         }
 
         if ($groupBy -eq 'ports') {
-            Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
-            $tcpGroups = $endpoints | Where-Object { $null -ne $_.tcpPorts } | Group-Object -Property { $_.tcpPorts }
 
-            foreach ($tcpGroup in $tcpGroups) {
+
+            $endpointSets.ForEach({
+                    Clear-Variable sortedtcpPorts
+                    if ($_.tcpPorts) {
+                        $_.tcpPorts = $(($_.tcpPorts.Replace(' ','').Split(',') | Sort-Object) -join ',')
+                    }
+                    if ($_.udpPorts) {
+                        $_.udpPorts = $(($_.udpPorts.Replace(' ','').Split(',') | Sort-Object) -join ',')
+                    }
+                })
+
+            Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
+            $tcpSets = $endpointSets | Group-Object tcpPorts
+
+            foreach ($tcpSet in $tcpSets) {
 
                 Clear-Variable -Name ('displayName', 'description', 'urls', 'ips', 'ipsName', 'tcpPorts') -ErrorAction Ignore
 
-                $urls = $tcpGroup.Group.urls | Sort-Object | Get-Unique
-                $ips = $tcpGroup.Group.ips | Sort-Object | Get-Unique
-                $tcpPorts = $tcpGroup.Name
-                $name = $tcpGroup.Group.serviceAreaDisplayName | Sort-Object | Get-Unique
+                $urls = $tcpSet.Group.urls | Sort-Object | Get-Unique
+                $ips = $tcpSet.Group.ips | Sort-Object | Get-Unique
+                $tcpPorts = $tcpSet.Name
+                $name = $tcpSet.Group.serviceAreaDisplayName | Sort-Object | Get-Unique
                 $displayName = $name + ' TCP ' + $tcpPorts
-                $description = "Network Endpoints for $name on TCP Port(s) $($tcpGroup.Name)"
+                $description = "Network Endpoints for $name on TCP Port(s) $($tcpSet.Name)"
                 $ipsName = "IP Addresses for $name"
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
 
             }
 
-            $udpGroups = $endpoints | Where-Object { $null -ne $_.udpPorts } | Group-Object -Property { $_.udpPorts }
-            foreach ($udpGroup in $udpGroups) {
+            Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
+            $udpSets = $endpointSets | Group-Object udpPorts
+
+            foreach ($udpSet in $udpSets) {
 
                 Clear-Variable -Name ('displayName', 'description', 'urls', 'ips', 'ipsName', 'udpPorts') -ErrorAction Ignore
 
-                $urls = $udpGroup.Group.urls | Sort-Object | Get-Unique
-                $ips = $udpGroup.Group.ips | Sort-Object | Get-Unique
-                $udpPorts = $udpGroup.Name
-                $name = $udpGroup.Group.serviceAreaDisplayName | Sort-Object | Get-Unique
+                $urls = $udpSet.Group.urls | Sort-Object | Get-Unique
+                $ips = $udpSet.Group.ips | Sort-Object | Get-Unique
+                $udpPorts = $udpSet.Name
+                $name = $udpSet.Group.serviceAreaDisplayName | Sort-Object | Get-Unique
                 $displayName = $name + ' UDP ' + $udpPorts
-                $description = "Network Endpoints for $name on UDP Port(s) $($udpGroup.Name)"
+                $description = "Network Endpoints for $name on UDP Port(s) $($udpSet.Name)"
                 $ipsName = "IP Addresses for $name"
 
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
@@ -265,10 +299,10 @@ foreach ($serviceArea in $serviceAreas) {
 
             Clear-Variable -Name ('displayName', 'description', 'urls', 'ips', 'ipsName') -ErrorAction Ignore
 
-            $urls = $endpoints.urls | Sort-Object | Get-Unique
-            $ips = $endpoints.ips | Sort-Object | Get-Unique
-            $name = $endpoints.serviceAreaDisplayName | Sort-Object | Get-Unique
-            $displayName = $name + " URLs and IPs $($webService.latest)"
+            $urls = $endpointSets.urls | Sort-Object | Get-Unique
+            $ips = $endpointSets.ips | Sort-Object | Get-Unique
+            $name = $endpointSets.serviceAreaDisplayName | Sort-Object | Get-Unique
+            $displayName = $name + ' URLs and IPs'
             $description = "All URL and IP Network Endpoints for $name"
             $ipsName = "IP Addresses for $name"
 
@@ -277,7 +311,7 @@ foreach ($serviceArea in $serviceAreas) {
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
             }
             else {
-                $displayName = $name + " IPs $($webService.latest)"
+                $displayName = $name + ' IPs'
                 $description = "IP Network Endpoints for $name"
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $null; ips = $ips; ipsName = $ipsName }
 
@@ -286,7 +320,7 @@ foreach ($serviceArea in $serviceAreas) {
                 $urlSubSets = $urls | Group-Object -Property { [math]::Floor($counter.Value++ / $groupSize) }
 
                 foreach ($urlSubSet in $urlSubSets) {
-                    $displayName = $name + " URLs $($webService.latest) " + $urlSubSet.Name
+                    $displayName = $name + ' URLs ' + $urlSubSet.Name
                     $description = "URL Network Endpoints for $name"
                     $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urlSubSet.Group; ips = $null; ipsName = $null }
                 }
