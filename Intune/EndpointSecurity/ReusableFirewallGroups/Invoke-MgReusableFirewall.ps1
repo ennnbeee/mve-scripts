@@ -184,7 +184,7 @@ else {
 $tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
 $tenantName = 'phxconnickbenton'
 $serviceAreas = 'MEM'
-$groupBy = 'service'
+$groupBy = 'ports'
 
 Write-Host '█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀' -ForegroundColor Red
 Write-Host '█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄' -ForegroundColor Red
@@ -278,7 +278,7 @@ foreach ($serviceArea in $serviceAreas) {
             }
 
             Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
-            $udpSets = $endpointSets | Group-Object udpPorts
+            $udpSets = $endpointSets | Where-Object { $null -ne $_.udpPorts} | Group-Object udpPorts
 
             foreach ($udpSet in $udpSets) {
 
