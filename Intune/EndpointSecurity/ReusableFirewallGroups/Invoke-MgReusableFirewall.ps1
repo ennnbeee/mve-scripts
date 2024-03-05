@@ -54,6 +54,7 @@ param(
     [String]$instance = 'Worldwide',
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support')]
     [String[]]$serviceAreas = @('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support'),
 
     [Parameter(Mandatory = $true)]
@@ -235,7 +236,6 @@ foreach ($serviceArea in $serviceAreas) {
     else {
         try {
             $endpointSets = (Invoke-RestMethod -Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
-
             Write-Host "Found $($endpointSets.Count) Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
 
@@ -248,18 +248,16 @@ foreach ($serviceArea in $serviceAreas) {
 
         if ($groupBy -eq 'ports') {
 
-
             $endpointSets.ForEach({
-                    Clear-Variable sortedtcpPorts
+
                     if ($_.tcpPorts) {
-                        $_.tcpPorts = $(($_.tcpPorts.Replace(' ','').Split(',') | Sort-Object) -join ',')
+                        $_.tcpPorts = $(($_.tcpPorts.Replace(' ', '').Split(',') | Sort-Object) -join ',')
                     }
                     if ($_.udpPorts) {
-                        $_.udpPorts = $(($_.udpPorts.Replace(' ','').Split(',') | Sort-Object) -join ',')
+                        $_.udpPorts = $(($_.udpPorts.Replace(' ', '').Split(',') | Sort-Object) -join ',')
                     }
                 })
 
-            Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
             $tcpSets = $endpointSets | Group-Object tcpPorts
 
             foreach ($tcpSet in $tcpSets) {
@@ -270,15 +268,15 @@ foreach ($serviceArea in $serviceAreas) {
                 $ips = $tcpSet.Group.ips | Sort-Object | Get-Unique
                 $tcpPorts = $tcpSet.Name
                 $name = $tcpSet.Group.serviceAreaDisplayName | Sort-Object | Get-Unique
-                $displayName = $name + ' TCP ' + $tcpPorts
-                $description = "Network Endpoints for $name on TCP Port(s) $($tcpSet.Name)"
+                $displayName = $name + ' URLs and IPs' + ' TCP ' + $tcpPorts
+                $description = "All URL and IP Network Endpoints for $name on TCP Port(s) $($tcpSet.Name)"
                 $ipsName = "IP Addresses for $name"
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
 
             }
 
-            Write-Host "Grouping Reusable Firewall Rules by Ports for $serviceArea Service" -ForegroundColor Cyan
-            $udpSets = $endpointSets | Where-Object { $null -ne $_.udpPorts} | Group-Object udpPorts
+
+            $udpSets = $endpointSets | Where-Object { $null -ne $_.udpPorts } | Group-Object udpPorts
 
             foreach ($udpSet in $udpSets) {
 
@@ -288,8 +286,8 @@ foreach ($serviceArea in $serviceAreas) {
                 $ips = $udpSet.Group.ips | Sort-Object | Get-Unique
                 $udpPorts = $udpSet.Name
                 $name = $udpSet.Group.serviceAreaDisplayName | Sort-Object | Get-Unique
-                $displayName = $name + ' UDP ' + $udpPorts
-                $description = "Network Endpoints for $name on UDP Port(s) $($udpSet.Name)"
+                $displayName = $name + ' URLs and IPs' + ' UDP ' + $udpPorts
+                $description = "All URL and IP Network Endpoints for $name on UDP Port(s) $($udpSet.Name)"
                 $ipsName = "IP Addresses for $name"
 
                 $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
@@ -565,6 +563,7 @@ foreach ($reusableSetting in $reusableSettings) {
         Write-Host "Creating Reusable Firewall Setting for $($reusableSetting.displayName) in Microsoft Intune" -ForegroundColor Cyan
         #New-DeviceReusableSetting -JSON $JSON
         Write-Host "Successfully created Reusable Firewall Setting for $($reusableSetting.displayName) in Microsoft Intune" -ForegroundColor Green
+        Write-Host
     }
     Catch {
         Write-Host 'ERROR' -ForegroundColor red
