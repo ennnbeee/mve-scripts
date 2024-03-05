@@ -185,7 +185,7 @@ else {
 $tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
 $tenantName = 'phxconnickbenton'
 $serviceAreas = 'MEM'
-$groupBy = 'ports'
+$groupBy = 'service'
 
 Write-Host '█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀' -ForegroundColor Red
 Write-Host '█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄' -ForegroundColor Red
