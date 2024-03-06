@@ -135,7 +135,7 @@ if ($Module.count -eq 0) {
 }
 else {
     If ($IsMacOS) {
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId -ForceRefresh
     }
     ElseIf ($IsWindows) {
         Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
@@ -164,7 +164,7 @@ Write-Host
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
 
-#Removes the onmicrosoft crap
+#Removes the onmicrosoft bit
 $tenantName = $tenantName.Split('.')[0]
 
 foreach ($serviceArea in $serviceAreas) {
@@ -199,7 +199,9 @@ foreach ($serviceArea in $serviceAreas) {
                 '*.microsoft.com',
                 '*.s-microsoft.com',
                 'manage.devcenter.microsoft.com'
-            )
+            ) | Sort-Object | Get-Unique
+
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Store URLs'; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = $urlsStore; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -215,7 +217,8 @@ foreach ($serviceArea in $serviceAreas) {
                 's0.assets-yammer.com',
                 'vortex.data.microsoft.com',
                 'web.microsoftstream.com'
-            )
+            ) | Sort-Object | Get-Unique
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Stream URLs'; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = $urlsStream; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -243,8 +246,10 @@ foreach ($serviceArea in $serviceAreas) {
                 'cs11.wpc.v0cdn.net',
                 'cs1137.wpc.gammacdn.net',
                 'settings.data.microsoft.com',
-                'settings-win.data.microsoft.com'
-            )
+                'settings-win.data.microsoft.com',
+                '*.akamai.net'
+            ) | Sort-Object | Get-Unique
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Support URLs'; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = $urlsSupport; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -276,13 +281,12 @@ foreach ($serviceArea in $serviceAreas) {
                 'secure.aadcdn.microsoftonline-p.com',
                 'ris-prod-atm.trafficmanager.net',
                 'validation-v2.sls.trafficmanager.net'
+            ) | Sort-Object | Get-Unique
 
-            )
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Intune URLs'; description = 'Network Endpoints for Microsoft Intune on TCP Ports(s) 80,443'; urls = $urlsIntune; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
-
         if ($serviceArea -eq 'Office') {
             $urlsOffice = @(
                 '*.c-msedge.net',
