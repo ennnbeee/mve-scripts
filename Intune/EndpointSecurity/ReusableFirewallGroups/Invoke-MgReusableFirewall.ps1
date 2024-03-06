@@ -54,8 +54,8 @@ param(
     [String]$instance = 'Worldwide',
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support')]
-    [String[]]$serviceAreas = @('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support'),
+    [ValidateSet('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support', 'Intune', 'Office')]
+    [String[]]$serviceAreas = @('Common', 'MEM', 'Skype', 'Exchange', 'SharePoint', 'Store', 'Stream', 'Support', 'Intune', 'Office'),
 
     [Parameter(Mandatory = $true)]
     [ValidateSet('ports', 'service')]
@@ -107,36 +107,8 @@ Function New-DeviceReusableSetting() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
-        break
-    }
-}
-Function Get-DeviceReusableSetting() {
-
-    [cmdletbinding()]
-
-    param
-    (
-    )
-
-    $graphApiVersion = 'Beta'
-    $Resource = 'deviceManagement/reusablePolicySettings'
-
-    try {
-        $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        Invoke-MgGraphRequest -Uri $uri -Method Get
-    }
-    catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
+        $ErrorMessage = $_.Exception.Message
+        Write-Warning $ErrorMessage
         Write-Host
         break
     }
@@ -182,11 +154,6 @@ else {
 
 #region script
 
-$tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
-$tenantName = 'phxconnickbenton'
-$serviceAreas = 'MEM'
-$groupBy = 'service'
-
 Write-Host '█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀' -ForegroundColor Red
 Write-Host '█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄' -ForegroundColor Red
 Write-Host
@@ -196,6 +163,9 @@ Write-Host
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
+
+#Removes the onmicrosoft crap
+$tenantName = $tenantName.Split('.')[0]
 
 foreach ($serviceArea in $serviceAreas) {
 
@@ -208,30 +178,142 @@ foreach ($serviceArea in $serviceAreas) {
 
     Write-Host "Getting Network Endpoints for $serviceArea Service" -ForegroundColor Cyan
     # URLs and IPs that don't exist in the Web Service
-    if ($serviceArea -in 'Store', 'Stream', 'Support') {
+    if ($serviceArea -in 'Store', 'Stream', 'Support', 'Intune', 'Office') {
         if ($serviceArea -eq 'Store') {
-            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Store URLs'; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = @('displaycatalog.md.mp.microsoft.com', 'purchase.md.mp.microsoft.com', 'licensing.mp.microsoft.com', 'storeedgefd.dsx.mp.microsoft.com'); ips = $null; ipsName = $null }
+            $urlsStore = @(
+                'displaycatalog.md.mp.microsoft.com',
+                'purchase.md.mp.microsoft.com',
+                'licensing.mp.microsoft.com'
+                '*.displaycatalog.mp.microsoft.com',
+                'purchase.mp.microsoft.com',
+                'storecatalogrevocation.storequality.microsoft.com',
+                'img-prod-cms-rt-microsoft-com.akamaized.net',
+                '*.md.mp.microsoft.com',
+                'pti.store.microsoft.com',
+                'markets.books.microsoft.com',
+                'storeedgefd.dsx.mp.microsoft.com',
+                'livetileedge.dsx.mp.microsoft.com',
+                'share.microsoft.com',
+                '*.microsoft.com.akadns.net',
+                'clientconfig.passport.net windowsphone.com',
+                '*.microsoft.com',
+                '*.s-microsoft.com',
+                'manage.devcenter.microsoft.com'
+            )
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Store URLs'; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = $urlsStore; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
         if ($serviceArea -eq 'Stream') {
-            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Stream URLs'; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = @('*.cloudapp.net', '*.api.microsoftstream.com', '*.notification.api.microsoftstream.com', 'amp.azure.net', 'api.microsoftstream.com', 'az416426.vo.msecnd.net', 's0.assets-yammer.com', 'vortex.data.microsoft.com', 'web.microsoftstream.com'); ips = $null; ipsName = $null }
+            $urlsStream = @(
+                '*.cloudapp.net',
+                '*.api.microsoftstream.com',
+                '*.notification.api.microsoftstream.com',
+                'amp.azure.net',
+                'api.microsoftstream.com'
+                'az416426.vo.msecnd.net',
+                's0.assets-yammer.com',
+                'vortex.data.microsoft.com',
+                'web.microsoftstream.com'
+            )
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Stream URLs'; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = $urlsStream; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
         if ($serviceArea -eq 'Support') {
-            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Support URLs'; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = @('autodiscover.outlook.com', 'officecdn.microsoft.com', 'api.diagnostics.office.com', 'apibasic.diagnostics.office.com', 'autodiscover-s.outlook.com', 'cloudcheckenabler.azurewebsites.net', 'login.live.com', 'login.microsoftonline.com', 'login.windows.net', 'o365diagtelemetry.trafficmanager.net', 'odc.officeapps.live.com', 'offcatedge.azureedge.net', 'officeapps.live.com', 'outlook.office365.com', 'outlookdiagnostics.azureedge.net', 'sara.api.support.microsoft.com', '*.msappproxy.net'); ips = $null; ipsName = $null }
+            $urlsSupport = @(
+                'autodiscover.outlook.com',
+                'officecdn.microsoft.com',
+                'api.diagnostics.office.com',
+                'apibasic.diagnostics.office.com',
+                'autodiscover-s.outlook.com',
+                'cloudcheckenabler.azurewebsites.net',
+                'login.live.com',
+                'login.microsoftonline.com',
+                'login.windows.net',
+                'o365diagtelemetry.trafficmanager.net',
+                'odc.officeapps.live.com',
+                'offcatedge.azureedge.net',
+                'officeapps.live.com',
+                'outlook.office365.com',
+                'outlookdiagnostics.azureedge.net',
+                'sara.api.support.microsoft.com',
+                '*.msappproxy.net',
+                '*.vortex-win.data.microsoft.com',
+                'cs11.wpc.v0cdn.net',
+                'cs1137.wpc.gammacdn.net',
+                'settings.data.microsoft.com',
+                'settings-win.data.microsoft.com'
+            )
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Support URLs'; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = $urlsSupport; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
         }
-        # No endpoint URL for Microsoft Store
+        if ($serviceArea -eq 'Intune') {
+            $urlsIntune = @(
+                'dmd.metaservices.microsoft.com',
+                'ztd.dds.microsoft.com',
+                'cs.dds.microsoft.com',
+                '*.microsoftaik.azure.net',
+                'activation.sls.microsoft.com',
+                'validation.sls.microsoft.com',
+                'activation-v2.sls.microsoft.com',
+                'validation-v2.sls.microsoft.com',
+                'licensing.mp.microsoft.com',
+                'licensing.md.mp.microsoft.com',
+                'cs9.wac.phicdn.net',
+                'hwcdn.net',
+                '*geo-prod.do.dsp.mp.microsoft.com',
+                'wdcp.microsoft.com',
+                'definitionupdates.microsoft.com',
+                '*.smartscreen.microsoft.com',
+                '*.smartscreen-prod.microsoft.com',
+                'checkappexec.microsoft.com',
+                'login.msa.akadns6.net',
+                'us.configsvc1.live.com.akadns.net',
+                'wd-prod-fe.cloudapp.azure.com',
+                'accountalt.azureedge.net',
+                'secure.aadcdn.microsoftonline-p.com',
+                'ris-prod-atm.trafficmanager.net',
+                'validation-v2.sls.trafficmanager.net'
 
-        <# No endpoint URL for O365 CDNs
-    if ($serviceArea -eq 'azure') {
-        #$reusableSettings += [pscustomobject]@{displayName = 'Azure URLs'; description = 'Network Endpoints for Azure on TCP Ports(s) 80,443'; urls = @('login.microsoftonline.com', '*.aadcdn.msftauth.net', '*.aadcdn.msftauthimages.net', '*.aadcdn.msauthimages.net', '*.logincdn.msftauth.net', 'login.live.com', '*.msauth.net', '*.aadcdn.microsoftonline-p.com', '*.microsoftonline-p.com', '*.portal.azure.com', '*.hosting.portal.azure.net', '*.reactblade.portal.azure.net', 'management.azure.com', '*.ext.azure.com', '*.graph.windows.net', '*.graph.microsoft.com', '*.account.microsoft.com', '*.bmx.azure.com', '*.subscriptionrp.trafficmanager.net', '*.signup.azure.com', 'aka.ms', '*.asazure.windows.net', '*.azconfig.io', '*.aad.azure.com', '*.aadconnecthealth.azure.com', 'ad.azure.com', 'adf.azure.com', 'api.aadrm.com', 'api.loganalytics.io', 'api.azrbac.mspim.azure.com', '*.applicationinsights.azure.com', 'appservice.azure.com', '*.arc.azure.net', 'asazure.windows.net', 'bastion.azure.com', 'batch.azure.com', 'catalogapi.azure.com', 'catalogartifact.azureedge.net', 'changeanalysis.azure.com', 'cognitiveservices.azure.com', 'config.office.com', 'cosmos.azure.com', '*.database.windows.net', 'datalake.azure.net', 'dev.azure.com', 'dev.azuresynapse.net', 'digitaltwins.azure.net', 'learn.microsoft.com', 'elm.iga.azure.com', 'eventhubs.azure.net', 'functions.azure.com', 'gallery.azure.com', 'go.microsoft.com', 'help.kusto.windows.net', 'identitygovernance.azure.com', 'iga.azure.com', 'informationprotection.azure.com', 'kusto.windows.net', 'learn.microsoft.com', 'logic.azure.com', 'marketplacedataprovider.azure.com', 'marketplaceemail.azure.com', 'media.azure.net', 'monitor.azure.com', '*.msidentity.com', 'mspim.azure.com', 'network.azure.com', 'purview.azure.com', 'quantum.azure.com', 'rest.media.azure.net', 'search.azure.com', 'servicebus.azure.net', 'servicebus.windows.net', 'shell.azure.com', 'sphere.azure.net', 'azure.status.microsoft', 'storage.azure.com', 'storage.azure.net', 'vault.azure.net', 'ux.console.azure.com'); ips = ''; ipsName = '' }
-        $reusableSettings += [pscustomobject]@{displayName = 'Azure URLs'; description = 'Network Endpoints for Azure on TCP Ports(s) 80,443'; urls = @('login.microsoftonline.com', '*.aadcdn.msftauth.net', '*.aadcdn.msftauthimages.net', '*.aadcdn.msauthimages.net', '*.logincdn.msftauth.net', 'login.live.com', '*.msauth.net', '*.aadcdn.microsoftonline-p.com', '*.microsoftonline-p.com', '*.portal.azure.com', '*.hosting.portal.azure.net', '*.reactblade.portal.azure.net', 'management.azure.com', '*.ext.azure.com', '*.graph.windows.net', '*.graph.microsoft.com', '*.account.microsoft.com', '*.bmx.azure.com', '*.subscriptionrp.trafficmanager.net', '*.signup.azure.com', 'aka.ms'); ips = ''; ipsName = '' }
-    }
-    #>
+            )
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Intune URLs'; description = 'Network Endpoints for Microsoft Intune on TCP Ports(s) 80,443'; urls = $urlsIntune; ips = $null; ipsName = $null }
+            Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
+            Write-Host
+        }
+
+        if ($serviceArea -eq 'Office') {
+            $urlsOffice = @(
+                '*.c-msedge.net',
+                '*.e-msedge.net',
+                '*.s-msedge.net',
+                'nexusrules.officeapps.live.com',
+                'ocos-office365-s2s.msedge.net',
+                'officeclient.microsoft.com',
+                'outlook.office365.com',
+                'client-office365-tas.msedge.net',
+                'www.office.com',
+                'onecollector.cloudapp.aria',
+                'v10.events.data.microsoft.com',
+                'self.events.data.microsoft.com',
+                'to-do.microsoft.com',
+                'g.live.com',
+                'msagfx.live.com',
+                'oneclient.sfx.ms',
+                'logincdn.msauth.net',
+                'blobs.officehome.msocdn.com',
+                'officehomeblobs.blob.core.windows.net',
+                'outlookmobile-office365-tas.msedge.net',
+                'config.teams.microsoft.com',
+                'iecvlist.microsoft.com',
+                'msedge.api.cdp.microsoft.com'
+
+            )
+            $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Office App URLs'; description = 'Network Endpoints for Microsoft Office Apps on TCP Ports(s) 80,443'; urls = $urlsOffice; ips = $null; ipsName = $null }
+            Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
+            Write-Host
+        }
     }
     else {
         try {
@@ -558,16 +640,18 @@ foreach ($reusableSetting in $reusableSettings) {
 
     Try {
         $JSON = $startJSON + $urlsJSON + $ipFullJSON + $endJSON
-        $outfile = $($reusableSetting.displayName) + '.json'
-        $JSON | Out-File $outfile
+        #$outfile = $($reusableSetting.displayName) + '.json'
+        #$JSON | Out-File $outfile
         Write-Host "Creating Reusable Firewall Setting for $($reusableSetting.displayName) in Microsoft Intune" -ForegroundColor Cyan
-        #New-DeviceReusableSetting -JSON $JSON
+        New-DeviceReusableSetting -JSON $JSON
         Write-Host "Successfully created Reusable Firewall Setting for $($reusableSetting.displayName) in Microsoft Intune" -ForegroundColor Green
         Write-Host
     }
     Catch {
-        Write-Host 'ERROR' -ForegroundColor red
+        $ErrorMessage = $_.Exception.Message
+        Write-Warning $ErrorMessage
     }
-
+    Write-Host 'Completed the creation of the reusable firewall group settings, disconnecting from Graph' -ForegroundColor Green
+    Write-Host
 }
 #endregion script
