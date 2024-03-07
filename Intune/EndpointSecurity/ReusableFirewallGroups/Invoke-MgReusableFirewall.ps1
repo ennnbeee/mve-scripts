@@ -107,8 +107,11 @@ Function New-DeviceReusableSetting() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $ErrorMessage = $_.Exception.Message
-        Write-Warning $ErrorMessage
+        $exs = $Error.ErrorDetails
+        $ex = $exs[0]
+        Write-Host "Response content:`n$ex" -f Red
+        Write-Host
+        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
         Write-Host
         break
     }
@@ -135,13 +138,26 @@ if ($Module.count -eq 0) {
 }
 else {
     If ($IsMacOS) {
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId -ForceRefresh
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+
     }
     ElseIf ($IsWindows) {
         Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
     }
     Else {
         Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
     }
 
     $graphDetails = Get-MgContext
@@ -164,7 +180,7 @@ Write-Host
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
 
-#Removes the onmicrosoft bit
+#Removes the onmicrosoft crap
 $tenantName = $tenantName.Split('.')[0]
 
 foreach ($serviceArea in $serviceAreas) {
@@ -199,9 +215,7 @@ foreach ($serviceArea in $serviceAreas) {
                 '*.microsoft.com',
                 '*.s-microsoft.com',
                 'manage.devcenter.microsoft.com'
-            ) | Sort-Object | Get-Unique
-
-
+            )
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Store URLs'; description = 'Network Endpoints for Microsoft Store on TCP Ports(s) 80,443'; urls = $urlsStore; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -217,8 +231,7 @@ foreach ($serviceArea in $serviceAreas) {
                 's0.assets-yammer.com',
                 'vortex.data.microsoft.com',
                 'web.microsoftstream.com'
-            ) | Sort-Object | Get-Unique
-
+            )
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Stream URLs'; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = $urlsStream; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -246,10 +259,8 @@ foreach ($serviceArea in $serviceAreas) {
                 'cs11.wpc.v0cdn.net',
                 'cs1137.wpc.gammacdn.net',
                 'settings.data.microsoft.com',
-                'settings-win.data.microsoft.com',
-                '*.akamai.net'
-            ) | Sort-Object | Get-Unique
-
+                'settings-win.data.microsoft.com'
+            )
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Support URLs'; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = $urlsSupport; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -280,9 +291,10 @@ foreach ($serviceArea in $serviceAreas) {
                 'accountalt.azureedge.net',
                 'secure.aadcdn.microsoftonline-p.com',
                 'ris-prod-atm.trafficmanager.net',
-                'validation-v2.sls.trafficmanager.net'
-            ) | Sort-Object | Get-Unique
+                'validation-v2.sls.trafficmanager.net',
+                'ctldl.windowsupdate.com'
 
+            )
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Intune URLs'; description = 'Network Endpoints for Microsoft Intune on TCP Ports(s) 80,443'; urls = $urlsIntune; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -357,8 +369,26 @@ foreach ($serviceArea in $serviceAreas) {
                 $displayName = $name + ' URLs and IPs' + ' TCP ' + $tcpPorts
                 $description = "All URL and IP Network Endpoints for $name on TCP Port(s) $($tcpSet.Name)"
                 $ipsName = "IP Addresses for $name"
-                $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
 
+                # Plus one as IPs only count as a single setting
+                if (($urls.Count + 1) -le 100) {
+                    $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
+                }
+                else {
+                    $displayName = $name + ' IPs' + ' TCP ' + $tcpPorts
+                    $description = "All IP Network Endpoints for $name on TCP Port(s) $($tcpSet.Name)"
+                    $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $null; ips = $ips; ipsName = $ipsName }
+
+                    $counter = [pscustomobject] @{ Value = 0 }
+                    $groupSize = 100
+                    $urlSubSets = $urls | Group-Object -Property { [math]::Floor($counter.Value++ / $groupSize) }
+
+                    foreach ($urlSubSet in $urlSubSets) {
+                        $displayName = $name + ' URLs IPs' + ' TCP ' + $tcpPorts + ' ' + $urlSubSet.Name
+                        $description = "All URL Network Endpoints for $name on TCP Port(s) $($tcpSet.Name)"
+                        $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urlSubSet.Group; ips = $null; ipsName = $null }
+                    }
+                }
             }
 
 
@@ -376,10 +406,28 @@ foreach ($serviceArea in $serviceAreas) {
                 $description = "All URL and IP Network Endpoints for $name on UDP Port(s) $($udpSet.Name)"
                 $ipsName = "IP Addresses for $name"
 
-                $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
+                # Plus one as IPs only count as a single setting
+                if (($urls.Count + 1) -le 100) {
+                    $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urls; ips = $ips; ipsName = $ipsName }
+                }
+                else {
+                    $displayName = $name + ' IPs' + ' UDP ' + $udpPorts
+                    $description = "All IP Network Endpoints for $name on UDP Port(s) $($udpSet.Name)"
+                    $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $null; ips = $ips; ipsName = $ipsName }
+
+                    $counter = [pscustomobject] @{ Value = 0 }
+                    $groupSize = 100
+                    $urlSubSets = $urls | Group-Object -Property { [math]::Floor($counter.Value++ / $groupSize) }
+
+                    foreach ($urlSubSet in $urlSubSets) {
+                        $displayName = $name + ' URLs IPs' + ' UDP ' + $udpPorts + ' ' + $urlSubSet.Name
+                        $description = "All URL Network Endpoints for $name on UDP Port(s) $($udpSet.Name)"
+                        $reusableSettings += [pscustomobject]@{displayName = $displayName; description = $description; urls = $urlSubSet.Group; ips = $null; ipsName = $null }
+                    }
+                }
             }
         }
-        elseif ($groupBy -eq 'service') {
+        else {
 
             Clear-Variable -Name ('displayName', 'description', 'urls', 'ips', 'ipsName') -ErrorAction Ignore
 
@@ -654,8 +702,10 @@ foreach ($reusableSetting in $reusableSettings) {
     Catch {
         $ErrorMessage = $_.Exception.Message
         Write-Warning $ErrorMessage
+        Disconnect-MgGraph
+        break
     }
-    Write-Host 'Completed the creation of the reusable firewall group settings, disconnecting from Graph' -ForegroundColor Green
-    Write-Host
+
 }
+Disconnect-MgGraph
 #endregion script
