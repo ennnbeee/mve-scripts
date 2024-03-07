@@ -325,7 +325,24 @@ foreach ($serviceArea in $serviceAreas) {
                 'iecvlist.microsoft.com',
                 'msedge.api.cdp.microsoft.com'
                 '*.deploy.static.akamaitechnologies.com'
-                '*.akamai.net'
+                '*.akamai.net',
+                'f.c2r.ts.cdn.office.net',
+                '*.trafficmanager.net',
+                'officec2r.azureedge.net',
+                'officec2r.ec.azureedge.net',
+                'lb.apr-15cd6a.edgecastdns.net',
+                'scdn29004.wpc.15cd6a.iotacdn.net',
+                'sni1gl.wpc.iotacdn.net',
+                'nf.smartscreen.microsoft.com',
+                'go.microsoft.com.edgekey.net',
+                '*.dspg.akamaiedge.net',
+                'ocsp.digicert.com',
+                'ocsp.edge.digicert.com',
+                'sv.symcb.com',
+                'crl-symcprod.digicert.com',
+                'crl.edge.digicert.com',
+                's1.symcb.com',
+                'crl.verisign.com'
             ) | Sort-Object | Get-Unique
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Office App URLs'; description = 'Network Endpoints for Microsoft Office Apps on TCP Ports(s) 80,443'; urls = $urlsOffice; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
