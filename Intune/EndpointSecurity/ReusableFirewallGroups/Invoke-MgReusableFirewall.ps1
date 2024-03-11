@@ -232,6 +232,7 @@ foreach ($serviceArea in $serviceAreas) {
                 'vortex.data.microsoft.com',
                 'web.microsoftstream.com'
             ) | Sort-Object | Get-Unique
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Stream URLs'; description = 'Network Endpoints for Microsoft Stream on TCP Ports(s) 80,443'; urls = $urlsStream; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -261,6 +262,7 @@ foreach ($serviceArea in $serviceAreas) {
                 'settings.data.microsoft.com',
                 'settings-win.data.microsoft.com'
             ) | Sort-Object | Get-Unique
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Support URLs'; description = 'Network Endpoints for Microsoft Support on TCP Ports(s) 80,443'; urls = $urlsSupport; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -292,9 +294,12 @@ foreach ($serviceArea in $serviceAreas) {
                 'secure.aadcdn.microsoftonline-p.com',
                 'ris-prod-atm.trafficmanager.net',
                 'validation-v2.sls.trafficmanager.net',
-                'ctldl.windowsupdate.com'
-
+                'ctldl.windowsupdate.com',
+                'wu-bg-shim.trafficmanager.net'
+                'wu.azureedge.net',
+                'wu.ec.azureedge.net'
             ) | Sort-Object | Get-Unique
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Intune URLs'; description = 'Network Endpoints for Microsoft Intune on TCP Ports(s) 80,443'; urls = $urlsIntune; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
@@ -342,8 +347,12 @@ foreach ($serviceArea in $serviceAreas) {
                 'crl-symcprod.digicert.com',
                 'crl.edge.digicert.com',
                 's1.symcb.com',
-                'crl.verisign.com'
+                'crl.verisign.com',
+                'e11290.dspg.akamaiedge.net',
+                'mpki-ocsp.digicert.com',
+                's2.symcb.com'
             ) | Sort-Object | Get-Unique
+
             $reusableSettings += [pscustomobject]@{displayName = 'Microsoft Office App URLs'; description = 'Network Endpoints for Microsoft Office Apps on TCP Ports(s) 80,443'; urls = $urlsOffice; ips = $null; ipsName = $null }
             Write-Host "Found 1 Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
