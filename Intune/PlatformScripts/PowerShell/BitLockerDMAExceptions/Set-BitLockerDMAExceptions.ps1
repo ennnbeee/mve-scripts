@@ -6,9 +6,9 @@
 $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\DmaSecurity\AllowedBuses'
 $dmaDevices = @()
 
-$devicesLenovo = @('20UACTO1WW', '20KG0005AU')
-$devicesDell = @('Latitude 7320','Latitude 5320')
-$devicesHP = @('HP EliteBook 8540p')
+$devicesLenovo = @('20UACTO1WW', '20KG0005AU') # Add in additional devices here with the same exceptions
+$devicesDell = @('Latitude 7320','Latitude 5320') # Add in additional devices here with the same exceptions
+$devicesHP = @('HP EliteBook 8540p') # Add in additional devices here with the same exceptions
 
 Try {
 
