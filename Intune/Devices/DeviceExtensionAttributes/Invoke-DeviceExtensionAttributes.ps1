@@ -1,6 +1,13 @@
 [CmdletBinding()]
 param(
 
+
+    [Parameter(Mandatory = $true)]
+    [String]$tenantId,
+
+    [Parameter(Mandatory = $false)]
+    [String[]]$scopes = 'DeviceManagementConfiguration.Read.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All',
+
     [Parameter(Mandatory = $true)]
     [ValidateSet('Update', 'Remove')]
     [String]$Mode
@@ -104,15 +111,55 @@ Function Add-DeviceAttribute() {
 }
 #endregion Functions
 
-Try {
-    Connect-MgGraph -Scopes 'Device.ReadWrite.All'
+#region authentication
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
+    Disconnect-MgGraph
 }
-
-Catch{
-    Write-Host 'Unable to connect to Graph...' -ForegroundColor Red
-    Break
+$moduleName = 'Microsoft.Graph'
+$Module = Get-InstalledModule -Name $moduleName
+if ($Module.count -eq 0) {
+    Write-Host "$moduleName module is not available" -ForegroundColor yellow
+    $Confirm = Read-Host Are you sure you want to install module? [Y] Yes [N] No
+    if ($Confirm -match '[yY]') {
+        Install-Module -Name $moduleName -AllowClobber -Scope AllUsers -Force
+    }
+    else {
+        Write-Host "$moduleName module is required. Please install module using 'Install-Module $moduleName -Scope AllUsers -Force' cmdlet." -ForegroundColor Yellow
+        break
+    }
 }
+else {
+    If ($IsMacOS) {
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
 
+    }
+    ElseIf ($IsWindows) {
+        Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+    }
+    Else {
+        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+    }
+
+    $graphDetails = Get-MgContext
+    if ($null -eq $graphDetails) {
+        Write-Host "Not connected to Graph, please review any errors and try to run the script again' cmdlet." -ForegroundColor Red
+        break
+    }
+}
+#endregion authentication
 #endregion
 
 If ($Mode -eq 'Update') {
@@ -122,7 +169,7 @@ else {
     Clear-Variable attributeValue
 }
 
-$Devices = @(Get-DeviceAAD | Select-Object displayName, operatingSystem, manufacturer, model, id, deviceId  | Out-GridView -PassThru -Title 'Select Devices to update extension attributes...')
+$Devices = @(Get-DeviceAAD | Select-Object displayName, operatingSystem, manufacturer, model, id, deviceId | Out-GridView -PassThru -Title 'Select Devices to update extension attributes...')
 
 $extensionAttributes = @()
 for ($i = 1; $i -le 15; $i++) {
