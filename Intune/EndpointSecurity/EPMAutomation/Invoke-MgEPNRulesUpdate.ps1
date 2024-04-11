@@ -1,3 +1,42 @@
+<#
+.SYNOPSIS
+Allows for a phased and controlled distribution of Windows 11 Feature Updates
+following the run and capture of Update Readiness data, tagging devices
+in Entra ID with their update readiness risk score for use with Dynamic
+Security Groups.
+
+.DESCRIPTION
+The Invoke-Windows11Accelerator script allows for the controlled roll out of
+Windows 11 Feature Updates based on device readiness risk assements data.
+
+.PARAMETER tenantId
+Provide the Id of the tenant to connecto to.
+
+.PARAMETER Scopes
+The scopes used to connect to the Graph API using PowerShell.
+Default scopes configured are:
+'Group.Read.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All'
+
+.PARAMETER deployment
+Provide the type of deployment, select from:
+Report - Generates and downloads EPM report details.
+Import - Allows the import of new rules based on the report.
+ImportAssign - Allows the import of new rules based on the report and assignment based on provided group.
+
+.INPUTS
+None. You can't pipe objects to Invoke-MgEPNRulesUpdate.
+
+.OUTPUTS
+None. Invoke-MgEPNRulesUpdate doesn't generate any output.
+
+.EXAMPLE
+PS> .\Invoke-MgEPNRulesUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -deployment Report
+
+.EXAMPLE
+PS> .\Invoke-MgEPNRulesUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -deployment Import
+
+#>
+
 [CmdletBinding()]
 param(
 
@@ -5,7 +44,7 @@ param(
     [String]$tenantId = '12dddf86-ad8c-4563-a980-18d4c5321b6a',
 
     [Parameter(Mandatory = $false)]
-    [String[]]$scopes = 'DeviceManagementConfiguration.Read.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All',
+    [String[]]$scopes = 'Group.Read.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All',
 
     [Parameter(Mandatory = $true)]
     [ValidateSet('Report', 'Import', 'ImportAssign')]
