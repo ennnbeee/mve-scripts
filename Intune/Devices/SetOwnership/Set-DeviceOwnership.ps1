@@ -1,92 +1,6 @@
 #region Functions
-Function Get-AuthTokenMSAL {
-
-    <#
-    .SYNOPSIS
-    This function is used to authenticate with the Graph API REST interface
-    .DESCRIPTION
-    The function authenticate with the Graph API Interface with the tenant name
-    .EXAMPLE
-    Get-AuthTokenMSAL
-    Authenticates you with the Graph API interface using MSAL.PS module
-    .NOTES
-    NAME: Get-AuthTokenMSAL
-    #>
-    
-    [cmdletbinding()]
-    
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        $User
-    )
-    
-    $userUpn = New-Object 'System.Net.Mail.MailAddress' -ArgumentList $User
-    if ($userUpn.Host -like '*onmicrosoft.com*') {
-        $tenant = Read-Host -Prompt 'Please specify your Tenant name i.e. company.com'
-        Write-Host
-    }
-    else {
-        $tenant = $userUpn.Host
-    }
-    
-    Write-Host 'Checking for MSAL.PS module...'
-    $MSALModule = Get-Module -Name 'MSAL.PS' -ListAvailable
-    if ($null -eq $MSALModule) {
-        Write-Host
-        Write-Host 'MSAL.PS Powershell module not installed...' -f Red
-        Write-Host "Install by running 'Install-Module MSAL.PS -Scope CurrentUser' from an elevated PowerShell prompt" -f Yellow
-        Write-Host "Script can't continue..." -f Red
-        Write-Host
-        exit
-    }
-    if ($MSALModule.count -gt 1) {
-        $Latest_Version = ($MSALModule | Select-Object version | Sort-Object)[-1]
-        $MSALModule = $MSALModule | Where-Object { $_.version -eq $Latest_Version.version }
-        # Checking if there are multiple versions of the same module found
-        if ($MSALModule.count -gt 1) {
-            $MSALModule = $MSALModule | Select-Object -Unique
-        }
-    }
-        
-    $ClientId = 'd1ddf0e4-d672-4dae-b554-9d5bdfd93547'
-    $RedirectUri = 'urn:ietf:wg:oauth:2.0:oob'
-    $Authority = "https://login.microsoftonline.com/$Tenant"
-    
-    try {
-        Import-Module $MSALModule.Name
-        if ($PSVersionTable.PSVersion.Major -ne 7) {
-            $authResult = Get-MsalToken -ClientId $ClientId -Interactive -RedirectUri $RedirectUri -Authority $Authority
-        }
-        else {
-            $authResult = Get-MsalToken -ClientId $ClientId -Interactive -RedirectUri $RedirectUri -Authority $Authority -DeviceCode
-        }
-        # If the accesstoken is valid then create the authentication header
-        if ($authResult.AccessToken) {
-            # Creating header for Authorization token
-            $authHeader = @{
-                'Content-Type'  = 'application/json'
-                'Authorization' = 'Bearer ' + $authResult.AccessToken
-                'ExpiresOn'     = $authResult.ExpiresOn
-            }
-            return $authHeader
-        }
-        else {
-            Write-Host
-            Write-Host 'Authorization Access Token is null, please re-run authentication...' -ForegroundColor Red
-            Write-Host
-            break
-        }
-    }
-    catch {
-        Write-Host $_.Exception.Message -f Red
-        Write-Host $_.Exception.ItemName -f Red
-        Write-Host
-        break
-    }
-}
 Function Get-ManagedDevices() {
-    
+
     <#
     .SYNOPSIS
     This function is used to get Intune Managed Devices from the Graph API REST interface
@@ -101,73 +15,68 @@ Function Get-ManagedDevices() {
     .NOTES
     NAME: Get-ManagedDevices
     #>
-    
+
     [cmdletbinding()]
-    
+
     param
     (
         [switch]$IncludeEAS,
         [switch]$ExcludeMDM
     )
-    
+
     # Defining Variables
     $graphApiVersion = 'beta'
     $Resource = 'deviceManagement/managedDevices'
-    
+
     try {
-    
+
         $Count_Params = 0
-    
+
         if ($IncludeEAS.IsPresent) { $Count_Params++ }
         if ($ExcludeMDM.IsPresent) { $Count_Params++ }
-            
+
         if ($Count_Params -gt 1) {
-    
+
             Write-Warning 'Multiple parameters set, specify a single parameter -IncludeEAS, -ExcludeMDM or no parameter against the function'
             Write-Host
             break
-    
+
         }
-            
+
         elseif ($IncludeEAS) {
-    
+
             $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource"
-    
+
         }
-    
+
         elseif ($ExcludeMDM) {
-    
+
             $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?`$filter=managementAgent eq 'eas'"
-    
+
         }
-            
+
         else {
-        
+
             $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?`$filter=managementAgent eq 'mdm' and managementAgent eq 'easmdm'"
-    
+
         }
-    
-            (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
-        
+
+            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+
     }
-    
+
     catch {
-    
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+
+        Write-Error $Error[0].ErrorDetails.Message
         break
-    
+
     }
-    
+
 }
 Function Set-ManagedDeviceOwnership() {
-    
+
     [cmdletbinding()]
-    
+
     param
     (
         $id,
@@ -175,53 +84,48 @@ Function Set-ManagedDeviceOwnership() {
     )
     $graphApiVersion = 'Beta'
     $Resource = 'deviceManagement/managedDevices'
-    
+
     try {
-    
+
         if ($id -eq '' -or $null -eq $id) {
-    
+
             Write-Host 'No Device id specified, please provide a device id...' -f Red
             break
-    
+
         }
-            
+
         if ($ownerType -eq '' -or $null -eq $ownerType) {
-    
+
             Write-Host 'No ownerType parameter specified, please provide an ownerType. Supported value personal or company...' -f Red
             Write-Host
             break
-    
+
         }
-    
+
         $Output = New-Object -TypeName psobject
         $Output | Add-Member -MemberType NoteProperty -Name 'ownerType' -Value $ownerType
 
         $JSON = $Output | ConvertTo-Json -Depth 3
 
-                
+
         # Send Patch command to Graph to change the ownertype
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource/$ID"
-        Invoke-RestMethod -Uri $uri -Headers $authToken -Method Patch -Body $Json -ContentType 'application/json'
+        Invoke-MgGraphRequest-Uri $uri -Method Patch -Body $Json -ContentType 'application/json'
 
     }
-    
+
     catch {
-    
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+
+        Write-Error $Error[0].ErrorDetails.Message
         break
-    
+
     }
-    
+
 }
 Function Get-DeviceGroup() {
 
     [cmdletbinding()]
-    
+
     param
     (
         [string]$GroupName
@@ -230,33 +134,28 @@ Function Get-DeviceGroup() {
     # Defining Variables
     $graphApiVersion = 'v1.0'
     $Resource = 'groups'
-    
+
     try {
-        
+
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?`$filter=displayName eq '$GroupName'"
 
-    
-            (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
-        
+
+            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+
     }
-    
+
     catch {
-    
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+
+        Write-Error $Error[0].ErrorDetails.Message
         break
-    
+
     }
-    
+
 }
 Function Get-DeviceGroupMembers() {
 
     [cmdletbinding()]
-    
+
     param
     (
         [string]$id
@@ -265,81 +164,78 @@ Function Get-DeviceGroupMembers() {
     # Defining Variables
     $graphApiVersion = 'v1.0'
     $Resource = 'groups'
-    
+
     try {
-        
+
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource/$id/members"
 
-    
-            (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
-        
+
+            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+
     }
-    
+
     catch {
-    
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+
+        Write-Error $Error[0].ErrorDetails.Message
         break
-    
+
     }
-    
+
 }
 #endregion
-    
-#region Authentication
-# Checking if authToken exists before running authentication
-if ($global:authToken) {
 
-    # Setting DateTime to Universal time to work in all timezones
-    $DateTime = (Get-Date).ToUniversalTime()
-
-    # If the authToken exists checking when it expires
-    $TokenExpires = ($authToken.ExpiresOn.datetime - $DateTime).Minutes
-
-    if ($TokenExpires -le 0) {
-
-        Write-Host 'Authentication Token expired' $TokenExpires 'minutes ago' -ForegroundColor Yellow
-        Write-Host
-
-        # Defining User Principal Name if not present
-
-        if ($null -eq $User -or $User -eq '') {
-
-            $User = Read-Host -Prompt 'Please specify your user principal name for Azure Authentication'
-            Write-Host
-
-        }
-
-        $global:authToken = Get-AuthTokenMSAL -User $User
-
+#region authentication
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
+    Disconnect-MgGraph
+}
+$moduleName = 'Microsoft.Graph'
+$Module = Get-InstalledModule -Name $moduleName
+if ($Module.count -eq 0) {
+    Write-Host "$moduleName module is not available" -ForegroundColor yellow
+    $Confirm = Read-Host Are you sure you want to install module? [Y] Yes [N] No
+    if ($Confirm -match '[yY]') {
+        Install-Module -Name $moduleName -AllowClobber -Scope AllUsers -Force
+    }
+    else {
+        Write-Host "$moduleName module is required. Please install module using 'Install-Module $moduleName -Scope AllUsers -Force' cmdlet." -ForegroundColor Yellow
+        break
     }
 }
-
-# Authentication doesn't exist, calling Get-AuthToken function
-
 else {
-
-    if ($null -eq $User -or $User -eq '') {
-
-        $User = Read-Host -Prompt 'Please specify your user principal name for Azure Authentication'
-        Write-Host
+    If ($IsMacOS) {
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
 
     }
+    ElseIf ($IsWindows) {
+        Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+    }
+    Else {
+        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+    }
 
-    # Getting the authorization token
-    $global:authToken = Get-AuthTokenMSAL -User $User
-    Write-Host 'Connected to Graph API' -ForegroundColor Green
-    Write-Host
+    $graphDetails = Get-MgContext
+    if ($null -eq $graphDetails) {
+        Write-Host "Not connected to Graph, please review any errors and try to run the script again' cmdlet." -ForegroundColor Red
+        break
+    }
 }
+#endregion authentication
 
-#endregion
-    
 #region Script
-    
+
 Write-Host '****************************************************************************'
 
 Write-Host '****    Welcome to the Endpoint Manager Device Ownership Converter Tool ****' -ForegroundColor Green
@@ -358,15 +254,15 @@ Write-Host
 Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
 Write-Host
 $Choice_Number = ''
-$Choice_Number = Read-Host -Prompt 'Based on which option you want to run, please type 1, 2 or E to exit the script, then hit enter ' 
+$Choice_Number = Read-Host -Prompt 'Based on which option you want to run, please type 1, 2 or E to exit the script, then hit enter '
 
 while ( !($Choice_Number -eq '1' -or $Choice_Number -eq '2' -or $Choice_Number -eq 'E')) {
 
-    $Choice_Number = Read-Host -Prompt 'Invalid Option, Based on which option you want to run, please type 1, 2 or E to exit the test, then click enter ' 
+    $Choice_Number = Read-Host -Prompt 'Invalid Option, Based on which option you want to run, please type 1, 2 or E to exit the test, then click enter '
 
 }
 
-if ($Choice_Number -eq 'E') { 
+if ($Choice_Number -eq 'E') {
     Break
 }
 if ($Choice_Number -eq '1') {
@@ -377,13 +273,13 @@ if ($Choice_Number -eq '1') {
         Write-Host "Script can't continue" -ForegroundColor Red
         Write-Host
         break
-        
+
     }
     else {
         $Devices = Import-Csv -Path $CSVPath
     }
 }
-if ($Choice_Number -eq '2') { 
+if ($Choice_Number -eq '2') {
     $Group = Read-Host 'Please provide the name of the group containing members you want to convert'
     try {
         $id = (Get-DeviceGroup -GroupName "$Group").id
@@ -415,7 +311,7 @@ foreach ($Device in $Devices) {
         catch {
             Write-Host 'Unable to find device with serial number '$Device.SerialNumber'' -ForegroundColor Yellow
         }
-        
+
     }
     Else {
         try {
@@ -425,7 +321,7 @@ foreach ($Device in $Devices) {
         catch {
             Write-Host 'Unable to find device with name '$Device.DisplayName'' -ForegroundColor Yellow
         }
-        
+
     }
     try {
         Set-ManagedDeviceOwnership -id $ManagedDevice.id -ownertype company

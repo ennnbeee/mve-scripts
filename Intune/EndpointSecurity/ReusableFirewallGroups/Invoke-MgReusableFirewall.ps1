@@ -107,12 +107,7 @@ Function New-DeviceReusableSetting() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -360,7 +355,7 @@ foreach ($serviceArea in $serviceAreas) {
     }
     else {
         try {
-            $endpointSets = (Invoke-RestMethod -Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
+            $endpointSets = (Invoke-MgGraphRequest-Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
             Write-Host "Found $($endpointSets.Count) Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
 

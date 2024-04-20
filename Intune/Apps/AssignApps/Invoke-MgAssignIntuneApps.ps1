@@ -21,12 +21,7 @@ Function Get-MobileApps() {
             (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -40,12 +35,7 @@ Function Get-DeviceFilter() {
             (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -63,18 +53,12 @@ Function Get-MDMGroup() {
     $Resource = 'groups'
 
     try {
-        $authToken['ConsistencyLevel'] = 'eventual'
         $searchterm = 'search="displayName:' + $GroupName + '"'
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?$searchterm"
-        (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
+        (Invoke-MgGraphRequest -Uri $uri -Method Get -Headers @{ConsistencyLevel = 'eventual' }).Value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -96,12 +80,7 @@ Function Get-ApplicationAssignment() {
         (Invoke-MgGraphRequest -Uri $uri -Method Get)
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -125,12 +104,7 @@ Function Remove-ApplicationAssignment() {
         (Invoke-MgGraphRequest -Uri $uri -Method Delete)
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -254,12 +228,7 @@ Function Add-ApplicationAssignment() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }

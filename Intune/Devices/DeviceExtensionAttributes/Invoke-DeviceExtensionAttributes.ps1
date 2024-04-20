@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
 
-
     [Parameter(Mandatory = $true)]
     [String]$tenantId,
 
@@ -69,12 +68,7 @@ Function Get-DeviceAAD() {
         $Results
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -100,12 +94,7 @@ Function Add-DeviceAttribute() {
         Invoke-MgGraphRequest -Uri $uri -Method Patch -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -160,7 +149,6 @@ else {
     }
 }
 #endregion authentication
-#endregion
 
 If ($Mode -eq 'Update') {
     $attributeValue = Read-Host 'Enter in the attribute value to be assigned to devices...'

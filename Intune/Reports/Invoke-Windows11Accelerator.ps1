@@ -101,12 +101,7 @@ Function New-ReportFeatureUpdateReadiness() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -148,12 +143,7 @@ Function Get-ReportFeatureUpdateReadiness() {
 
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -179,12 +169,7 @@ Function Add-DeviceAttribute() {
         Invoke-MgGraphRequest -Uri $uri -Method Patch -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -221,12 +206,7 @@ Function Get-EntraIDDevice() {
         $Results
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }

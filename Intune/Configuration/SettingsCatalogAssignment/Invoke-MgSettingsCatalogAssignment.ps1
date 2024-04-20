@@ -36,17 +36,13 @@ Function Get-MDMGroup() {
     $Resource = 'groups'
 
     try {
-        $authToken['ConsistencyLevel'] = 'eventual'
         $searchterm = 'search="displayName:' + $GroupName + '"'
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?$searchterm"
-        (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
+        (Invoke-MgGraphRequest -Uri $uri -Method Get -Headers @{ConsistencyLevel = 'eventual' }).Value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex"
-        Write-Host "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Break
+        Write-Error $Error[0].ErrorDetails.Message
+        break
     }
 }
 Function Get-DeviceFilter() {
@@ -95,11 +91,8 @@ Function Get-DeviceFilter() {
         }
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex"
-        Write-Host "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Break
+        Write-Error $Error[0].ErrorDetails.Message
+        break
     }
 }
 Function Get-DeviceSettingsCatalogAssignment() {
@@ -120,11 +113,8 @@ Function Get-DeviceSettingsCatalogAssignment() {
         (Invoke-MgGraphRequest -Uri $uri -Method Get).value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex"
-        Write-Host "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Break
+        Write-Error $Error[0].ErrorDetails.Message
+        break
     }
 }
 Function Get-DeviceSettingsCatalog() {
@@ -159,11 +149,8 @@ Function Get-DeviceSettingsCatalog() {
         }
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex"
-        Write-Host "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Break
+        Write-Error $Error[0].ErrorDetails.Message
+        break
     }
 }
 Function Add-DeviceSettingsCatalogAssignment() {

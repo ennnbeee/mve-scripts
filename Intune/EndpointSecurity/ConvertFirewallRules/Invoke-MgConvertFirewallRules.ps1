@@ -89,12 +89,7 @@ Function New-DeviceSettingsCatalog() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -130,12 +125,7 @@ Function Get-DeviceEndpointSecProfile() {
         }
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -173,12 +163,7 @@ Function Get-DeviceEndpointSecCategorySetting() {
         (Invoke-MgGraphRequest -Method Get -Uri $uri).value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -213,12 +198,7 @@ Function Get-DeviceEndpointSecTemplateCategory() {
         (Invoke-MgGraphRequest -Method Get -Uri $uri).value
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
@@ -254,12 +234,7 @@ Function Get-DeviceEndpointSecTemplate() {
         }
     }
     catch {
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+        Write-Error $Error[0].ErrorDetails.Message
         break
     }
 
@@ -267,6 +242,10 @@ Function Get-DeviceEndpointSecTemplate() {
 #endregion Functions
 
 #region authentication
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
+    Disconnect-MgGraph
+}
 $moduleName = 'Microsoft.Graph'
 $Module = Get-InstalledModule -Name $moduleName
 if ($Module.count -eq 0) {
@@ -282,13 +261,26 @@ if ($Module.count -eq 0) {
 }
 else {
     If ($IsMacOS) {
-        Connect-MgGraph -Scopes $Scopes -UseDeviceAuthentication -TenantId $tenantId
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+
     }
     ElseIf ($IsWindows) {
-        Connect-MgGraph -Scopes $Scopes -UseDeviceCode -TenantId $tenantId
+        Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
     }
     Else {
-        Connect-MgGraph -Scopes $Scopes -TenantId $tenantId
+        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
     }
 
     $graphDetails = Get-MgContext

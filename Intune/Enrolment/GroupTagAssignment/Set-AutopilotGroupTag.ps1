@@ -1,99 +1,20 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
+    [String]$tenantId,
+
+    [Parameter(Mandatory = $false)]
+    [String[]]$scopes = 'DeviceManagementConfiguration.Read.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All',
+
+    [Parameter(Mandatory = $true)]
     [ValidateSet('CSV', 'Online')]
     [string]$Method,
+
     [Parameter(Mandatory = $true)]
     [string]$DefaultGroupTag
 )
 
 ## Functions
-Function Get-AuthTokenMSAL {
-
-    <#
-    .SYNOPSIS
-    This function is used to authenticate with the Graph API REST interface
-    .DESCRIPTION
-    The function authenticate with the Graph API Interface with the tenant name
-    .EXAMPLE
-    Get-AuthTokenMSAL
-    Authenticates you with the Graph API interface using MSAL.PS module
-    .NOTES
-    NAME: Get-AuthTokenMSAL
-    #>
-    
-    [cmdletbinding()]
-    
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        $User
-    )
-    
-    $userUpn = New-Object 'System.Net.Mail.MailAddress' -ArgumentList $User
-    if ($userUpn.Host -like '*onmicrosoft.com*') {
-        $tenant = Read-Host -Prompt 'Please specify your Tenant name i.e. company.com'
-        Write-Host
-    }
-    else {
-        $tenant = $userUpn.Host
-    }
-    
-    Write-Host 'Checking for MSAL.PS module...'
-    $MSALModule = Get-Module -Name 'MSAL.PS' -ListAvailable
-    if ($null -eq $MSALModule) {
-        Write-Host
-        Write-Host 'MSAL.PS Powershell module not installed...' -f Red
-        Write-Host "Install by running 'Install-Module MSAL.PS -Scope CurrentUser' from an elevated PowerShell prompt" -f Yellow
-        Write-Host "Script can't continue..." -f Red
-        Write-Host
-        exit
-    }
-    if ($MSALModule.count -gt 1) {
-        $Latest_Version = ($MSALModule | Select-Object version | Sort-Object)[-1]
-        $MSALModule = $MSALModule | Where-Object { $_.version -eq $Latest_Version.version }
-        # Checking if there are multiple versions of the same module found
-        if ($MSALModule.count -gt 1) {
-            $MSALModule = $MSALModule | Select-Object -Unique
-        }
-    }
-        
-    $ClientId = 'd1ddf0e4-d672-4dae-b554-9d5bdfd93547'
-    $RedirectUri = 'urn:ietf:wg:oauth:2.0:oob'
-    $Authority = "https://login.microsoftonline.com/$Tenant"
-    
-    try {
-        Import-Module $MSALModule.Name
-        if ($PSVersionTable.PSVersion.Major -ne 7) {
-            $authResult = Get-MsalToken -ClientId $ClientId -Interactive -RedirectUri $RedirectUri -Authority $Authority
-        }
-        else {
-            $authResult = Get-MsalToken -ClientId $ClientId -Interactive -RedirectUri $RedirectUri -Authority $Authority -DeviceCode
-        }
-        # If the accesstoken is valid then create the authentication header
-        if ($authResult.AccessToken) {
-            # Creating header for Authorization token
-            $authHeader = @{
-                'Content-Type'  = 'application/json'
-                'Authorization' = 'Bearer ' + $authResult.AccessToken
-                'ExpiresOn'     = $authResult.ExpiresOn
-            }
-            return $authHeader
-        }
-        else {
-            Write-Host
-            Write-Host 'Authorization Access Token is null, please re-run authentication...' -ForegroundColor Red
-            Write-Host
-            break
-        }
-    }
-    catch {
-        Write-Host $_.Exception.Message -f Red
-        Write-Host $_.Exception.ItemName -f Red
-        Write-Host
-        break
-    }
-}
 Function Get-AutopilotDevices() {
 
     <#
@@ -107,29 +28,24 @@ Function Get-AutopilotDevices() {
     .NOTES
     NAME: Get-AutopilotDevices
     #>
-    
+
     $graphApiVersion = 'Beta'
     $Resource = 'deviceManagement/windowsAutopilotDeviceIdentities'
-    
+
     try {
-    
+
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
-        
+            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+
     }
-    
+
     catch {
-    
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+
+        Write-Error $Error[0].ErrorDetails.Message
         break
-    
+
     }
-    
+
 }
 
 Function Set-AutopilotDevice() {
@@ -151,7 +67,7 @@ Function Set-AutopilotDevice() {
         $Id,
         $GroupTag
     )
-    
+
     $graphApiVersion = 'Beta'
     $Resource = "deviceManagement/windowsAutopilotDeviceIdentities/$Id/updateDeviceProperties"
 
@@ -172,72 +88,69 @@ Function Set-AutopilotDevice() {
         $JSON = $Autopilot | ConvertTo-Json -Depth 3
         # POST to Graph Service
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        Invoke-RestMethod -Uri $uri -Headers $authToken -Method Post -Body $JSON -ContentType 'application/json'
+        Invoke-MgGraphRequest-Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
         Write-Host "Successfully added '$GroupTag' to device" -ForegroundColor Green
-        
+
     }
-    
+
     catch {
-    
-        $exs = $Error.ErrorDetails
-        $ex = $exs[0]
-        Write-Host "Response content:`n$ex" -f Red
-        Write-Host
-        Write-Error "Request to $Uri failed with HTTP Status $($ex.Message)"
-        Write-Host
+
+        Write-Error $Error[0].ErrorDetails.Message
         break
-    
-    }
-    
-}
-
-#region Authentication
-# Checking if authToken exists before running authentication
-if ($global:authToken) {
-
-    # Setting DateTime to Universal time to work in all timezones
-    $DateTime = (Get-Date).ToUniversalTime()
-
-    # If the authToken exists checking when it expires
-    $TokenExpires = ($authToken.ExpiresOn.datetime - $DateTime).Minutes
-
-    if ($TokenExpires -le 0) {
-
-        Write-Host 'Authentication Token expired' $TokenExpires 'minutes ago' -ForegroundColor Yellow
-        Write-Host
-
-        # Defining User Principal Name if not present
-
-        if ($null -eq $User -or $User -eq '') {
-
-            $User = Read-Host -Prompt 'Please specify your user principal name for Azure Authentication'
-            Write-Host
-
-        }
-
-        $global:authToken = Get-AuthTokenMSAL -User $User
 
     }
+
 }
 
-# Authentication doesn't exist, calling Get-AuthToken function
-
+#region authentication
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
+    Disconnect-MgGraph
+}
+$moduleName = 'Microsoft.Graph'
+$Module = Get-InstalledModule -Name $moduleName
+if ($Module.count -eq 0) {
+    Write-Host "$moduleName module is not available" -ForegroundColor yellow
+    $Confirm = Read-Host Are you sure you want to install module? [Y] Yes [N] No
+    if ($Confirm -match '[yY]') {
+        Install-Module -Name $moduleName -AllowClobber -Scope AllUsers -Force
+    }
+    else {
+        Write-Host "$moduleName module is required. Please install module using 'Install-Module $moduleName -Scope AllUsers -Force' cmdlet." -ForegroundColor Yellow
+        break
+    }
+}
 else {
-
-    if ($null -eq $User -or $User -eq '') {
-
-        $User = Read-Host -Prompt 'Please specify your user principal name for Azure Authentication'
-        Write-Host
+    If ($IsMacOS) {
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
 
     }
+    ElseIf ($IsWindows) {
+        Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+    }
+    Else {
+        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+        Disconnect-MgGraph
+        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+    }
 
-    # Getting the authorization token
-    $global:authToken = Get-AuthTokenMSAL -User $User
-    Write-Host 'Connected to Graph API' -ForegroundColor Green
-    Write-Host
+    $graphDetails = Get-MgContext
+    if ($null -eq $graphDetails) {
+        Write-Host "Not connected to Graph, please review any errors and try to run the script again' cmdlet." -ForegroundColor Red
+        break
+    }
 }
-
-#endregion
+#endregion authentication
 
 # Script Start
 # Get Devices
@@ -249,7 +162,7 @@ if ($Method -eq 'CSV') {
         Write-Host "Script can't continue" -ForegroundColor Red
         Write-Host
         break
-        
+
     }
     else {
         $AutopilotDevices = Import-Csv -Path $CSVPath
