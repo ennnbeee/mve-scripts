@@ -21,7 +21,7 @@ Function Get-ADEEnrolmentToken() {
     try {
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 
@@ -46,7 +46,7 @@ Function Get-ADEEnrolmentProfile() {
     try {
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 
@@ -78,7 +78,7 @@ Function Add-ADEEnrolmentProfileAssignment() {
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        Invoke-MgGraphRequest-Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
+        Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
 
     catch {

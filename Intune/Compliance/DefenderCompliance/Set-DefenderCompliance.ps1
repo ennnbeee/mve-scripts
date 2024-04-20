@@ -81,7 +81,7 @@ Function Get-DeviceCompliancePolicy() {
     try {
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 
@@ -137,7 +137,7 @@ Function Update-DeviceCompliancePolicy() {
             Test-Json -Json $JSON
 
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            Invoke-MgGraphRequest-Uri $uri -Method Patch -Body $JSON -ContentType 'application/json'
+            Invoke-MgGraphRequest -Uri $uri -Method Patch -Body $JSON -ContentType 'application/json'
             Write-Host
             Write-Host 'Successfully Updated Compliance Policy' -ForegroundColor Green
 

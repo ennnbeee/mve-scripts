@@ -61,7 +61,7 @@ Function Get-ManagedDevices() {
 
         }
 
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 
@@ -110,7 +110,7 @@ Function Set-ManagedDeviceOwnership() {
 
         # Send Patch command to Graph to change the ownertype
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource/$ID"
-        Invoke-MgGraphRequest-Uri $uri -Method Patch -Body $Json -ContentType 'application/json'
+        Invoke-MgGraphRequest -Uri $uri -Method Patch -Body $Json -ContentType 'application/json'
 
     }
 
@@ -140,7 +140,7 @@ Function Get-DeviceGroup() {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?`$filter=displayName eq '$GroupName'"
 
 
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 
@@ -170,7 +170,7 @@ Function Get-DeviceGroupMembers() {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource/$id/members"
 
 
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 

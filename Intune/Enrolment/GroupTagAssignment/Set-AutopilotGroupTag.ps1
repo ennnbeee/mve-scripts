@@ -35,7 +35,7 @@ Function Get-AutopilotDevices() {
     try {
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
 
     }
 
@@ -88,7 +88,7 @@ Function Set-AutopilotDevice() {
         $JSON = $Autopilot | ConvertTo-Json -Depth 3
         # POST to Graph Service
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        Invoke-MgGraphRequest-Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
+        Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
         Write-Host "Successfully added '$GroupTag' to device" -ForegroundColor Green
 
     }

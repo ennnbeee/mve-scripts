@@ -355,7 +355,7 @@ foreach ($serviceArea in $serviceAreas) {
     }
     else {
         try {
-            $endpointSets = (Invoke-MgGraphRequest-Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
+            $endpointSets = (Invoke-MgGraphRequest -Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
             Write-Host "Found $($endpointSets.Count) Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
 

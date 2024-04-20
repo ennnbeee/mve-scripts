@@ -68,7 +68,7 @@ Function Get-DeviceCompliancePolicy() {
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        (Invoke-MgGraphRequest-Uri $uri -Method Get).Value
+        (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
     }
     catch {
         Write-Error $Error[0].ErrorDetails.Message
@@ -111,7 +111,7 @@ Function Update-DeviceCompliancePolicy() {
         else {
             Test-Json -Json $JSON
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            Invoke-MgGraphRequest-Uri $uri -Method Patch -Body $JSON -ContentType 'application/json'
+            Invoke-MgGraphRequest -Uri $uri -Method Patch -Body $JSON -ContentType 'application/json'
         }
     }
     catch {
