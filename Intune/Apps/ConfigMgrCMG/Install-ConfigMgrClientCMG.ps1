@@ -1,12 +1,14 @@
 [CmdletBinding()]
 param(
 
-    [Parameter(Mandatory = $true)]
-    [ValidateSet('PKI', 'Entra')]
-    [String]$authentication,
+    [Parameter(Mandatory = $false)]
+    [switch]$PKI,
 
     [Parameter(Mandatory = $true)]
     [String]$ccmSiteCode,
+
+    [Parameter(Mandatory = $true)]
+    [String]$ccmMP,
 
     [Parameter(Mandatory = $true)]
     [String]$cmgAddress,
@@ -24,11 +26,13 @@ param(
 
 try {
 
-    if ($authentication -eq 'PKI') {
-        $arguments = "/forceinstall /nocrlcheck /UsePKICert /mp:$('https://' + $cmgAddress) CCMHOSTNAME=$($cmgAddress) SMSSiteCode=$($ccmSiteCode)"
+    if ($PKI) {
+
+        $arguments = "/forceinstall /NoCRLCheck /UsePKICert /mp:$('https://' + $cmgAddress) CCMHOSTNAME=$($cmgAddress) SMSSITECODE=$($ccmSiteCode) SMSMP=$($ccmMP)"
     }
     else {
-        $arguments = "/forceinstall /nocrlcheck /mp:$('https://' + $cmgAddress) CCMHOSTNAME=$($cmgAddress) SMSSiteCode=$($ccmSiteCode) AADTENANTID=$($tenantId) AADCLIENTAPPID=$($clientAppId) AADRESOURCEURI=$($clientAppURL)"
+
+        $arguments = "/forceinstall /mp:$('https://' + $cmgAddress) CCMHOSTNAME=$($cmgAddress) SMSSITECODE=$($ccmSiteCode) SMSMP=$($ccmMP) AADTENANTID=$($tenantId) AADCLIENTAPPID=$($clientAppId) AADRESOURCEURI=$($clientAppURL)"
     }
 
     Start-Process -FilePath "$PSScriptRoot\ccmsetup.exe" -PassThru -Wait -ArgumentList $arguments
