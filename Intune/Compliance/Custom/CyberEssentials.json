@@ -1,0 +1,18 @@
+{
+    "Rules": [
+        {
+            "SettingName": "Guest Account Status",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "Disabled",
+            "MoreInfoUrl": "https://www.google.com",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "Guest account is enabled.",
+                    "Description": "Disable guest account."
+                }
+            ]
+        }
+    ]
+}

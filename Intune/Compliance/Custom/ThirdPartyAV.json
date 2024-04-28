@@ -1,0 +1,46 @@
+{
+    "Rules": [
+        {
+            "SettingName": "Sophos Anti-Virus",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "Sophos Anti-Virus",
+            "MoreInfoUrl": "https://www.google.com",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "Incorrect Antivirus solution detected. Value discovered was {ActualValue}.",
+                    "Description": "Install correct Antivirus solution."
+                }
+            ]
+        },
+        {
+            "SettingName": "Sophos Anti-Virus real time protection enabled",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "On",
+            "MoreInfoUrl": "https://www.google.com",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "Real time protection is not enabled",
+                    "Description": "Real time protection must be enabled."
+                }
+            ]
+        },
+        {
+            "SettingName": "Sophos Anti-Virus definitions up-to-date",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "Up to Date",
+            "MoreInfoUrl": "https://www.google.com",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "Antivirus definitions are not up to date.",
+                    "Description": "Please update the Antivirus definitions"
+                }
+            ]
+        }
+    ]
+}
