@@ -56,7 +56,7 @@ param(
     [String]$extensionAttribute,
 
     [Parameter(Mandatory = $false)]
-    [String[]]$Scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
+    [String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
 
 )
 

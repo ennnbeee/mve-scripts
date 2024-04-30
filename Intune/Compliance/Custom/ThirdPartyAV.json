@@ -5,12 +5,12 @@
             "Operator": "IsEquals",
             "DataType": "String",
             "Operand": "Sophos Anti-Virus",
-            "MoreInfoUrl": "https://www.google.com",
+            "MoreInfoUrl": "https://support.home.sophos.com/hc/en-us/categories/115001242663-Installing-Sophos-Home",
             "RemediationStrings": [
                 {
                     "Language": "en_US",
-                    "Title": "Incorrect Antivirus solution detected. Value discovered was {ActualValue}.",
-                    "Description": "Install correct Antivirus solution."
+                    "Title": "Sophos Anti-Virus was not detected.",
+                    "Description": "You must have Sophos Antivirus installed on your device to protect it from malware."
                 }
             ]
         },
@@ -19,12 +19,12 @@
             "Operator": "IsEquals",
             "DataType": "String",
             "Operand": "On",
-            "MoreInfoUrl": "https://www.google.com",
+            "MoreInfoUrl": "https://support.home.sophos.com/hc/en-us/articles/115005596186-Configuring-Real-Time-Protection",
             "RemediationStrings": [
                 {
                     "Language": "en_US",
-                    "Title": "Real time protection is not enabled",
-                    "Description": "Real time protection must be enabled."
+                    "Title": "Sophos Antivirus real time protection is not enabled",
+                    "Description": "Real time protection must be enabled in Sophos to protect your device, please enable this setting."
                 }
             ]
         },
@@ -33,12 +33,12 @@
             "Operator": "IsEquals",
             "DataType": "String",
             "Operand": "Up to Date",
-            "MoreInfoUrl": "https://www.google.com",
+            "MoreInfoUrl": "https://kb.mit.edu/confluence/pages/viewpage.action?pageId=152584581#:~:text=By%20default%2C%20Sophos%20Anti%2DVirus,as%20detailed%20%E2%80%93%20is%20not%20necessary.",
             "RemediationStrings": [
                 {
                     "Language": "en_US",
-                    "Title": "Antivirus definitions are not up to date.",
-                    "Description": "Please update the Antivirus definitions"
+                    "Title": "Sophos Antivirus definitions are not up to date.",
+                    "Description": "Please update the Sophos Antivirus definitions to ensure you device is protected from malware."
                 }
             ]
         }
