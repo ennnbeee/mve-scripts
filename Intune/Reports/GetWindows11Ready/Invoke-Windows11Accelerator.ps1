@@ -33,10 +33,10 @@ None. You can't pipe objects to Invoke-Windows11Accelerator.
 None. Invoke-Windows11Accelerator doesn't generate any output.
 
 .EXAMPLE
-PS> .\Invoke-Windows11Accelerator -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -extensionAttribute 15
+PS> .\Invoke-Windows11Accelerator.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -extensionAttribute 15
 
 .EXAMPLE
-PS> .\Invoke-Windows11Accelerator -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 22H2 -extensionAttribute 10
+PS> .\Invoke-Windows11Accelerator.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 22H2 -extensionAttribute 10
 
 #>
 
