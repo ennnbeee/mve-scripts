@@ -19,7 +19,7 @@ Choice of 22H2 or 23H2.
 .PARAMETER extensionAttribute
 Configure the device extensionAttribute to be used for tagging Entra ID device objects
 with their Feature Update Readiness Assessment risk score.
-Choice of extensionAttribute1 to extensionAttribute15
+Choice of 1 to 15
 
 .PARAMETER Scopes
 The scopes used to connect to the Graph API using PowerShell.
@@ -33,10 +33,10 @@ None. You can't pipe objects to Invoke-Windows11Accelerator.
 None. Invoke-Windows11Accelerator doesn't generate any output.
 
 .EXAMPLE
-PS> .\Invoke-Windows11Accelerator -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -extensionAttribute extensionAttribute15
+PS> .\Invoke-Windows11Accelerator -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -extensionAttribute 15
 
 .EXAMPLE
-PS> .\Invoke-Windows11Accelerator -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 22H2 -extensionAttribute extensionAttribute10
+PS> .\Invoke-Windows11Accelerator -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 22H2 -extensionAttribute 10
 
 #>
 
@@ -52,7 +52,7 @@ param(
     [String]$featureUpdateBuild = '23H2',
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet('extensionAttribute1', 'extensionAttribute2', 'extensionAttribute3', 'extensionAttribute4', 'extensionAttribute5', 'extensionAttribute6', 'extensionAttribute7', 'extensionAttribute8', 'extensionAttribute9', 'extensionAttribute10', 'extensionAttribute11', 'extensionAttribute12', 'extensionAttribute13', 'extensionAttribute14', 'extensionAttribute15')]
+    [ValidateRange(1, 15)]
     [String]$extensionAttribute,
 
     [Parameter(Mandatory = $false)]
@@ -260,7 +260,8 @@ else {
 
 #region Variables
 $ProgressPreference = 'SilentlyContinue';
-$rndWait = Get-Random -Minimum 1 -Maximum 3
+$rndWait = Get-Random -Minimum 1 -Maximum 5
+$extensionAttribute = 'extensionAttribute' + $extensionAttribute
 #endregion Variables
 
 
