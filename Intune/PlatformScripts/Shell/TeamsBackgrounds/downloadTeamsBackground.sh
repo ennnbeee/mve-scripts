@@ -21,16 +21,16 @@ teamsUpload="$HOME/Library/Application Support/Microsoft/Teams/Backgrounds/Uploa
 
 ## Check if the log directory has been created
 if [ -d $logandmetadir ]; then
-    ## Already created
-    echo "# $(date) | Log directory already exists - $logandmetadir"
+  ## Already created
+  echo "# $(date) | Log directory already exists - $logandmetadir"
 else
-    ## Creating Metadirectory
-    echo "# $(date) | creating log directory - $logandmetadir"
-    mkdir -p "$logandmetadir"
+  ## Creating Metadirectory
+  echo "# $(date) | creating log directory - $logandmetadir"
+  mkdir -p "$logandmetadir"
 fi
 
 # start logging
-exec 1>> "$log" 2>&1
+exec 1>>"$log" 2>&1
 
 echo ""
 echo "##############################################################"
@@ -41,16 +41,16 @@ echo ""
 ##
 ## Checking if Teams is Installed
 ##
-while [[ $ready -ne 1 ]];do
+while [[ $ready -ne 1 ]]; do
   missingappcount=0
-  if [[ -a "$teamsapp" ]]; then
+  if [[ -e "$teamsapp" ]]; then
     echo "$(date) |  $teamsapp is installed"
   else
     let missingappcount=$missingappcount+1
   fi
   echo "$(date) |  [$missingappcount] application missing"
 
-    if [[ $missingappcount -eq 0 ]]; then
+  if [[ $missingappcount -eq 0 ]]; then
     ready=1
     echo "$(date) |  Teams App found, lets download the backgrounds"
   else
@@ -62,21 +62,19 @@ done
 ##
 ## Checking if Teams Backgrounds Upload directory exists and create it if it's missing
 ##
-if [[ -d ${teamsUpload} ]]
-then
-    echo "$(date) | Teams Background Upload dir [$teamsUpload] already exists"
+if [[ -d ${teamsUpload} ]]; then
+  echo "$(date) | Teams Background Upload dir [$teamsUpload] already exists"
 else
-    echo "$(date) | Creating [$teamsUpload]"
-    mkdir -p "$teamsUpload"
+  echo "$(date) | Creating [$teamsUpload]"
+  mkdir -p "$teamsUpload"
 fi
-
 
 ##
 ## Attempt to download the files. No point checking if it already exists since we want to overwrite it anyway
 ##
 i=0
 for backgroundurl in "${backgroundurls[@]}"; do
-  ((i=i+1))
+  ((i = i + 1))
   backgroundfile="TeamsBackground$i.png"
   echo "$(date) | Downloading Background from [$backgroundurl] to [$teamsUpload/$backgroundfile]"
   curl -L -o "$teamsUpload/$backgroundfile" $backgroundurl
