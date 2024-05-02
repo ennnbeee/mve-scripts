@@ -26,8 +26,8 @@ appname="onBoarding"
 logandmetadir="/Library/Application Support/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
 swiftappname="SwiftDialog"
 swiftdialogfolder="/Library/Application Support/Microsoft/Intune/Scripts/$swiftappname"
-enrollmentWindowHours=3                                                       # The number of hours after enrollment that the script should run
-checkEnrollmentTime=true                                                       # Should we check the enrollment time? (Do NOT set this to false in production!!)
+enrollmentWindowHours=3  # The number of hours after enrollment that the script should run
+checkEnrollmentTime=true # Should we check the enrollment time? (Do NOT set this to false in production!!)
 
 # Generated variables
 tempdir=$(mktemp -d)
