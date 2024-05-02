@@ -22,7 +22,7 @@
 # User Defined variables
 
 weburl="https://github.com/swiftDialog/swiftDialog/releases/download/v2.4.2/dialog-2.4.2-4755.pkg"
-swiftdialogJson='https://raw.githubusercontent.com/ennnbeee/mve-scripts/main/Intune/PlatformScripts/Shell/SwiftDialog/onboarding_scripts/Intune/PlatformScripts/Shell/SwiftDialog/onboarding_scripts/swiftdialog.json.json'
+swiftdialogJson='https://raw.githubusercontent.com/ennnbeee/mve-scripts/main/Intune/PlatformScripts/Shell/SwiftDialog/onboarding_scripts/swiftdialog.json'
 appname="SwiftDialog"
 logandmetadir="/Library/Application Support/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
 dialogWidth="1024"                                                             # Width of the dialog box
