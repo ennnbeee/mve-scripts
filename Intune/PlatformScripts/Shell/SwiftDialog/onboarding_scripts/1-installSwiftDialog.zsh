@@ -22,16 +22,16 @@
 # User Defined variables
 
 weburl="https://github.com/swiftDialog/swiftDialog/releases/download/v2.4.2/dialog-2.4.2-4755.pkg"
-swiftdialogJson='https://catlab.blob.core.windows.net/swiftdialog/catlab.json'
-appname="Swift Dialog"
-logandmetadir="/Library/Application Support/Microsoft/IntuneScripts/$appname"   # The location of our logs and last updated data
-dialogWidth="1024"                                                               # Width of the dialog box
-dialogHeight="500"                                                              # Height of the dialog box
+swiftdialogJson='https://raw.githubusercontent.com/ennnbeee/mve-scripts/main/Intune/PlatformScripts/Shell/SwiftDialog/onboarding_scripts/Intune/PlatformScripts/Shell/SwiftDialog/onboarding_scripts/swiftdialog.json.json'
+appname="SwiftDialog"
+logandmetadir="/Library/Application Support/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
+dialogWidth="1024"                                                             # Width of the dialog box
+dialogHeight="500"                                                             # Height of the dialog box
 
 # Generated variables
 tempdir=$(mktemp -d)
-log="$logandmetadir/$appname.log"                                               # The location of the script log file
-metafile="$logandmetadir/$appname.meta"                                         # The location of our meta file (for updates)
+log="$logandmetadir/$appname.log"       # The location of the script log file
+metafile="$logandmetadir/$appname.meta" # The location of our meta file (for updates)
 
 #
 # Start Logging
@@ -44,10 +44,9 @@ fi
 
 exec > >(tee -a "$log") 2>&1
 
-
 ## Note, Rosetta detection code from https://derflounder.wordpress.com/2020/11/17/installing-rosetta-2-on-apple-silicon-macs/
 OLDIFS=$IFS
-IFS='.' read osvers_major osvers_minor osvers_dot_version <<< "$(/usr/bin/sw_vers -productVersion)"
+IFS='.' read osvers_major osvers_minor osvers_dot_version <<<"$(/usr/bin/sw_vers -productVersion)"
 IFS=$OLDIFS
 
 if [[ ${osvers_major} -ge 11 ]]; then
@@ -69,12 +68,10 @@ if [[ ${osvers_major} -ge 11 ]]; then
             /usr/sbin/softwareupdate --install-rosetta --agree-to-license
         fi
     fi
-    else
-        echo "$(date) | Mac is running macOS $osvers_major.$osvers_minor.$osvers_dot_version."
-        echo "$(date) | No need to install Rosetta on this version of macOS."
+else
+    echo "$(date) | Mac is running macOS $osvers_major.$osvers_minor.$osvers_dot_version."
+    echo "$(date) | No need to install Rosetta on this version of macOS."
 fi
-
-
 
 #####################################
 ## Aria2c installation
@@ -124,7 +121,6 @@ else
     rm -rf "$output"
 fi
 
-
 #
 # Start Download of Swift Dialog
 #
@@ -145,16 +141,13 @@ until ps aux | grep /System/Library/CoreServices/Dock.app/Contents/MacOS/Dock | 
 done
 echo "$(date) | Dock is here, lets carry on"
 
-
-
-
 #
 # Launch Swift Dialog Onboarding
 #
 
-max_attempts=5  # Number of maximum attempts to attempt launching Swift Dialog
+max_attempts=5 # Number of maximum attempts to attempt launching Swift Dialog
 
-for ((attempt=1; attempt<=max_attempts; attempt++)); do
+for ((attempt = 1; attempt <= max_attempts; attempt++)); do
 
     touch /var/tmp/dialog.log
     chmod a+w /var/tmp/dialog.log
@@ -174,9 +167,3 @@ for ((attempt=1; attempt<=max_attempts; attempt++)); do
     fi
 
 done
-
-
-
-
-
-

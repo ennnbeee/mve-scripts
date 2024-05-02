@@ -5,25 +5,25 @@
   "moveable": false,
   "ontop": true,
   "button1text": "Exit (Installations will continue)",
-  "icon": "/Library/Application Support/Microsoft/IntuneScripts/Swift dialog/icons/MEMvENNBEE.png",
+  "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/MEMvENNBEE.png",
   "centreicon": false,
   "iconsize": "400",
   "listitem": [
     {
       "title": "Company Portal",
-      "icon": "/Library/Application Support/Microsoft/IntuneScripts/Swift dialog/icons/CompanyPortal.png",
+      "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/CompanyPortal.png",
       "status": "pending",
       "statustext": "Pending"
     },
     {
       "title": "Microsoft Edge",
-      "icon": "/Library/Application Support/Microsoft/IntuneScripts/Swift dialog/icons/Edge.png",
+      "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/Edge.png",
       "status": "pending",
       "statustext": "Pending"
     },
     {
       "title": "Microsoft Defender",
-      "icon": "/Library/Application Support/Microsoft/IntuneScripts/Swift dialog/icons/Defender.png",
+      "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/Defender.png",
       "status": "pending",
       "statustext": "Pending"
     }

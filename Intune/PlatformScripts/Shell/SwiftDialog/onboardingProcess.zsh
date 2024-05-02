@@ -4,7 +4,7 @@
 ############################################################################################
 ##
 ## Script to perform onboarding operations
-## 
+##
 ## VER 1.0.0
 ##
 ############################################################################################
@@ -22,17 +22,17 @@
 # User Defined variables
 
 onboardingScriptsUrl="https://github.com/microsoft/shell-intune-samples/raw/master/macOS/Config/Swift%20Dialog/onboarding_scripts.zip" # Enter your own URL here
-appname="onBoarding"                                                 
-logandmetadir="/Library/Application Support/Microsoft/IntuneScripts/$appname"   # The location of our logs and last updated data
-enrollmentWindowHours=1                                                         # The number of hours after enrollment that the script should run
-checkEnrollmentTime=true                                                        # Should we check the enrollment time? (Do NOT set this to false in production!!)
+appname="onBoarding"
+logandmetadir="/Library/Application Support/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
+swiftappname="SwiftDialog"
+swiftdialogfolder="/Library/Application Support/Microsoft/Intune/Scripts/$swiftappname"
+enrollmentWindowHours=1                                                        # The number of hours after enrollment that the script should run
+checkEnrollmentTime=true                                                       # Should we check the enrollment time? (Do NOT set this to false in production!!)
 
 # Generated variables
 tempdir=$(mktemp -d)
-log="$logandmetadir/$appname.log"                                               # The location of the script log file
-metafile="$logandmetadir/$appname.meta"                                         # The location of our meta file (for updates)
-
-logandmetadir="/Library/Application Support/Microsoft/IntuneScripts/onBoarding"
+log="$logandmetadir/$appname.log"       # The location of the script log file
+metafile="$logandmetadir/$appname.meta" # The location of our meta file (for updates)
 
 # Start logging
 if [[ ! -d "$logandmetadir" ]]; then
@@ -51,7 +51,7 @@ if [[ $checkEnrollmentTime == true ]]; then
 
     # Exit if we've run before or this machine was enrolled more than $enrollmentWindowHours ago
     echo "$(date) | Checking if we've run before..."
-    if [ -e "/Library/Application Support/Microsoft/IntuneScripts/Swift Dialog/onboarding.flag" ]; then
+    if [ -e "$swiftdialogfolder/onboarding.flag" ]; then
 
         echo "$(date) |  + Script has already launched onboarding flow before. Skipping."
         exit 0
@@ -72,14 +72,14 @@ if [[ $checkEnrollmentTime == true ]]; then
         echo "$(date) |  + Current time [$current_time_seconds]"
 
         # Calculate the time difference in hours
-        time_difference_hours=$(( (current_time_seconds - install_date_seconds) / 3600 ))
+        time_difference_hours=$(((current_time_seconds - install_date_seconds) / 3600))
         echo "$(date) |  + Time difference [$time_difference_hours] hours"
 
         # Check if the difference is greater than $enrollmentWindowHours
         if [ "$time_difference_hours" -gt $enrollmentWindowHours ]; then
             echo "$(date) |  + Device was enrolled more than [$enrollmentWindowHours] hour(s) ago, skipping onboarding."
-            mkdir -p '/Library/Application Support/Microsoft/IntuneScripts/Swift Dialog'
-            touch '/Library/Application Support/Microsoft/IntuneScripts/Swift Dialog/onboarding.flag'
+            mkdir -p "$swiftdialogfolder"
+            touch "$swiftdialogfolder/onboarding.flag"
             exit 0
         else
             echo "$(date) |  + Device was enrolled less than [$enrollmentWindowHours] hour(s) ago, continuing onboarding."
@@ -97,18 +97,17 @@ if [ "$ARCH" = "arm64" ]; then
     # This is an Apple Silicon Mac.
     echo "$(date) | Apple Silicon Mac detected."
 
-
     # Rosetta not installed...
     attempt_counter=0
     max_attempts=10
 
     until /usr/bin/pgrep oahd || [ $attempt_counter -eq $max_attempts ]; do
-        attempt_counter=$(($attempt_counter+1))
+        attempt_counter=$(($attempt_counter + 1))
         echo "$(date) | Attempting to install Rosetta, attempt number: $attempt_counter"
         /usr/sbin/softwareupdate --install-rosetta --agree-to-license
         sleep 1
     done
-    
+
     if [ $attempt_counter -eq $max_attempts ]; then
         echo "$(date) | Reached max attempts to install Rosetta, moving on..."
     fi
@@ -116,7 +115,6 @@ if [ "$ARCH" = "arm64" ]; then
 else
     echo "$(date) | This is not an Apple Silicon Mac. No action needed."
 fi
-
 
 #####################################
 ## Aria2c installation
@@ -151,7 +149,7 @@ else
     else
         echo "$(date) | Mounted DMG"
     fi
-    
+
     # Install aria2 PKG from inside the DMG
     sudo installer -pkg "$mountpoint/aria2.pkg" -target /
     if [ $? -ne 0 ]; then
@@ -172,7 +170,7 @@ ariaExitCode=1
 unzipExitCode=1
 
 # Loop until the count is 5 or the exitCode is 0
-while [[ $ariaExitCode -ne 0  && $unzipExitCode -ne 0 ]]; do
+while [[ $ariaExitCode -ne 0 && $unzipExitCode -ne 0 ]]; do
     # Increment count
     downloadattempts=$((downloadattempts + 1))
     echo "$(date) | Attempting to downloading scripts [$downloadattempts]..."
@@ -194,7 +192,6 @@ while [[ $ariaExitCode -ne 0  && $unzipExitCode -ne 0 ]]; do
 done
 
 # Moving icons and json file
-swiftdialogfolder="/Library/Application Support/Microsoft/IntuneScripts/Swift Dialog"
 echo "$(date) | Moving icons and json file to $swiftdialogfolder"
 mkdir -p "$swiftdialogfolder"
 mv "$tempdir/onboarding_scripts/icons" "$swiftdialogfolder/icons"
@@ -204,7 +201,7 @@ mv "$tempdir/onboarding_scripts/swiftdialog.json" "$swiftdialogfolder/swiftdialo
 echo "$(date) | Starting Swift Dialog installation script"
 xattr -d com.apple.quarantine "$tempdir/onboarding_scripts/1-installSwiftDialog.zsh"
 chmod +x "$tempdir/onboarding_scripts/1-installSwiftDialog.zsh"
-nice -n -5 "$tempdir/onboarding_scripts/1-installSwiftDialog.zsh" & 
+nice -n -5 "$tempdir/onboarding_scripts/1-installSwiftDialog.zsh" &
 
 START=$(date +%s)
 
@@ -230,11 +227,10 @@ sleep 10
 
 echo "$(date) | Processing scripts..."
 for script in $tempdir/onboarding_scripts/scripts/*.*; do
-  echo "$(date) | Executing [$script]"
-  xattr -d com.apple.quarantine "$script"
-  chmod +x "$script"
-  nice -n 10 "$script" &
+    echo "$(date) | Executing [$script]"
+    xattr -d com.apple.quarantine "$script"
+    chmod +x "$script"
+    nice -n 10 "$script" &
 done
 
 echo "$(date) | Waiting for all scripts to finish..."
-
