@@ -21,7 +21,7 @@
 
 # User Defined variables
 
-onboardingScriptsUrl="https://github.com/microsoft/shell-intune-samples/raw/master/macOS/Config/SwiftDialog/onboarding_scripts.zip" # Enter your own URL here
+onboardingScriptsUrl="https://github.com/ennnbeee/mve-scripts/raw/main/Intune/PlatformScripts/Shell/SwiftDialog/onboarding_scripts.zip" # Enter your own URL here
 appname="onBoarding"
 logandmetadir="/Library/Application Support/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
 swiftappname="SwiftDialog"
