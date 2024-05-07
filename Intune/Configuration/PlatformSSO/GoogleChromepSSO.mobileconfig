@@ -16,14 +16,13 @@
                 <dict>
                   <key>ExtensionSettings</key>
                   <dict>
-                    <key>*</ikey>
+                    <key>ppnbnpeolgkicgegkbkbjmhlideopiji</key>
                     <dict>
                       <key>installation_mode</key>
                       <string>force_installed</string>
                       <key>update_url</key>
                       <string>https://clients2.google.com/service/update2/crx</string>
                     </dict>
-                    <key>ppnbnpeolgkicgegkbkbjmhlideopiji</key>
                   </dict>
                 </dict>
               </dict>
@@ -31,23 +30,23 @@
           </dict>
         </dict>
         <key>PayloadDisplayName</key>
-        <string>Extension settings for Platform SSO in Microsoft Intune.</string>
+        <string>Google Chrome Platform SSO Extension Settings</string>
         <key>PayloadEnabled</key>
         <true/>
         <key>PayloadIdentifier</key>
-        <string>com.google.Chrome</string>
+        <string>com.google.Chrome.extensions.platformsso</string>
         <key>PayloadType</key>
         <string>com.apple.ManagedClient.preferences</string>
         <key>PayloadUUID</key>
-        <string>8d7052d4-50d8-45b3-b01e-84d447dddd80</string>
+        <string>0f644bb2-a1e0-4a90-a093-934f32e126de</string>
         <key>PayloadVersion</key>
         <integer>1</integer>
       </dict>
     </array>
     <key>PayloadDescription</key>
-    <string>Extension settings for Platform SSO in Microsoft Intune.</string>
+    <string>Google Chrome Configuration</string>
     <key>PayloadDisplayName</key>
-    <string>Google Chrome Platform SSO Extension Settings</string>
+    <string>Google Chrome Configuration</string>
     <key>PayloadIdentifier</key>
     <string>com.google.Chrome</string>
     <key>PayloadOrganization</key>
@@ -59,7 +58,7 @@
     <key>PayloadType</key>
     <string>Configuration</string>
     <key>PayloadUUID</key>
-    <string>df248b7e-d684-4c6e-9886-78e50367017f</string>
+    <string>a01d7a80-6db0-4392-a8a9-989147fb2aa1</string>
     <key>PayloadVersion</key>
     <integer>1</integer>
   </dict>
