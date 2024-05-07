@@ -31,11 +31,11 @@
           </dict>
         </dict>
         <key>PayloadDisplayName</key>
-        <string>Chrome ExtensionSettings installation_mode example</string>
+        <string>Extension settings for Platform SSO in Microsoft Intune.</string>
         <key>PayloadEnabled</key>
         <true/>
         <key>PayloadIdentifier</key>
-        <string>com.example.Chrome.example.installation_mode</string>
+        <string>com.google.Chrome</string>
         <key>PayloadType</key>
         <string>com.apple.ManagedClient.preferences</string>
         <key>PayloadUUID</key>
@@ -49,7 +49,7 @@
     <key>PayloadDisplayName</key>
     <string>Google Chrome Platform SSO Extension Settings</string>
     <key>PayloadIdentifier</key>
-    <string>com.google.Chrome.ExtensionSettings.platformsso</string>
+    <string>com.google.Chrome</string>
     <key>PayloadOrganization</key>
     <string>MEM v ENNBEE</string>
     <key>PayloadRemovalDisallowed</key>
