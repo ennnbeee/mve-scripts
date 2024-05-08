@@ -14,23 +14,21 @@
               <dict>
                 <key>mcx_preference_settings</key>
                 <dict>
+                  <key>WebsiteFilter</key>
+                  <dict>
+                    <key>Block</key>
+                    <array>
+                      <string>chrome://flags</string>
+                      <string>chrome://net-internals</string>
+                      <string>chrome://tracing</string>
+                    </array>
+                  </dict>
                   <key>ExtensionSettings</key>
                   <dict>
-                    <key>ExtensionInstallAllowlist</key>
+                    <key>*</key>
                     <dict>
-                      <array>
-                        <string>cppnbnpeolgkicgegkbkbjmhlideopiji</string>
-                        <string>gojbdfnpnhogfdgjbigejoaolejmgdhk</string>
-                        <string>jpalhdlnbpafiamejdnhcphjbkeiagm</string>
-                        <string>ajdhfcoppbpocmaeoechanfllkoemlhi</string>
-                        <string>niloccemoadcdkdjlinkgdfekeahmflj</string>
-                        <string>cfhdojbkjhnklbpkdaibdccddilifddb</string>
-                        <string>ogfcmafjalglgifnmanfmnieipoejdcf</string>
-                      </array>
-                    </dict>
-                    <key>ExtensionInstallBlocklist</key>
-                    <dict>
-                      <string>*</string>
+                      <key>installation_mode</key>
+                      <string>blocked</string>
                     </dict>
                     <key>ppnbnpeolgkicgegkbkbjmhlideopiji</key>
                     <dict>
@@ -38,6 +36,41 @@
                       <string>force_installed</string>
                       <key>update_url</key>
                       <string>https://clients2.google.com/service/update2/crx</string>
+                    </dict>
+                    <key>ppnbnpeolgkicgegkbkbjmhlideopiji</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
+                    </dict>
+                    <key>ogfcmafjalglgifnmanfmnieipoejdcf</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
+                    </dict>
+                    <key>gojbdfnpnhogfdgjbigejoaolejmgdhk</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
+                    </dict>
+                    <key>jpalhdlnbpafiamejdnhcphjbkeiagm</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
+                    </dict>
+                    <key>ajdhfcoppbpocmaeoechanfllkoemlhi</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
+                    </dict>
+                    <key>niloccemoadcdkdjlinkgdfekeahmflj</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
+                    </dict>
+                    <key>cfhdojbkjhnklbpkdaibdccddilifddb</key>
+                    <dict>
+                      <key>installation_mode</key>
+                      <string>allowed</string>
                     </dict>
                   </dict>
                 </dict>
@@ -50,23 +83,23 @@
         <key>PayloadEnabled</key>
         <true/>
         <key>PayloadIdentifier</key>
-        <string>com.google.Chrome.ncsc</string>
+        <string>com.google.Chrome.NCSC</string>
         <key>PayloadType</key>
         <string>com.apple.ManagedClient.preferences</string>
         <key>PayloadUUID</key>
-        <string>ec8fc7d0-c7bc-4275-97dd-ad9a434e367e</string>
+        <string>7b81c71b-184d-4217-861f-cbc819f39905</string>
         <key>PayloadVersion</key>
         <integer>1</integer>
       </dict>
     </array>
     <key>PayloadDescription</key>
-    <string>Google Chrome Configuration</string>
+    <string>Google Chrome Settings</string>
     <key>PayloadDisplayName</key>
-    <string>Google Chrome Configuration</string>
+    <string>Google Chrome Settings profile</string>
     <key>PayloadIdentifier</key>
     <string>com.google.Chrome</string>
     <key>PayloadOrganization</key>
-    <string>MEM v ENNBEE</string>
+    <string>MEM v ENNBEE.</string>
     <key>PayloadRemovalDisallowed</key>
     <true/>
     <key>PayloadScope</key>
@@ -74,7 +107,7 @@
     <key>PayloadType</key>
     <string>Configuration</string>
     <key>PayloadUUID</key>
-    <string>7a260a7a-8c9e-453b-a9fd-f51684610f73</string>
+    <string>88cc4cdc-d96d-4df0-85e4-e54e7dec7511</string>
     <key>PayloadVersion</key>
     <integer>1</integer>
   </dict>
