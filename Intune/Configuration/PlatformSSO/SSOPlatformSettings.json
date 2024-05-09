@@ -3,8 +3,8 @@
     "createdDateTime": "2024-02-20T22:27:33.8829017Z",
     "creationSource": null,
     "description": "",
-    "lastModifiedDateTime": "2024-05-07T07:24:39.14735Z",
-    "name": "SSOPlatformSettings",
+    "lastModifiedDateTime": "2024-05-09T09:33:06.2077498Z",
+    "name": "MAC_PRD_COPE_SSOPlatform",
     "platforms": "macOS",
     "priorityMetaData": null,
     "roleScopeTagIds": [
@@ -36,7 +36,7 @@
                                 "settingInstanceTemplateReference": null,
                                 "choiceSettingValue": {
                                     "settingValueTemplateReference": null,
-                                    "value": "com.apple.extensiblesso_authenticationmethod_0",
+                                    "value": "com.apple.extensiblesso_authenticationmethod_1",
                                     "children": []
                                 }
                             },
@@ -74,7 +74,7 @@
                                                 "settingInstanceTemplateReference": null,
                                                 "choiceSettingValue": {
                                                     "settingValueTemplateReference": null,
-                                                    "value": "com.apple.extensiblesso_platformsso_authenticationmethod_0",
+                                                    "value": "com.apple.extensiblesso_platformsso_authenticationmethod_1",
                                                     "children": []
                                                 }
                                             },
