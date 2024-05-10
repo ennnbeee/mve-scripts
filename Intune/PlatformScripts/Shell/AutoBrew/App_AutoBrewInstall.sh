@@ -9,13 +9,15 @@
 
 # Define variables
 currentRelease=$(curl --silent "https://api.github.com/repos/Homebrew/brew/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-brewweburl="https://github.com/Homebrew/brew/releases/download/$currentRelease/Homebrew-$currentRelease.pkg"
 swiftweburl="https://github.com/swiftDialog/swiftDialog/releases/download/v2.4.2/dialog-2.4.2-4755.pkg"
 appname="AutoBrew"                                              # The name of our App deployment script
-logandmetadir="/Library/Logs/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
 autoUpdate="true"                                               # If true, application updates itself and we should not attempt to update
+brewApp="mas"                                                   # Brew App to be installed to support updating macOS apps
+brewTapp="buo/cask-upgrade"                                     # Brew Tap to be installed to support updating Brew apps
 
 # Generated variables
+brewweburl="https://github.com/Homebrew/brew/releases/download/$currentRelease/Homebrew-$currentRelease.pkg"
+logandmetadir="/Library/Logs/Microsoft/Intune/Scripts/$appname" # The location of our logs and last updated data
 tempdir=$(mktemp -d)
 log="$logandmetadir/$appname.log"       # The location of the script log file
 metafile="$logandmetadir/$appname.meta" # The location of our meta file (for updates)
@@ -273,8 +275,8 @@ function updateCheck() {
 
 }
 
-## Install PKG Function
-function installPKG() {
+## Install Brew Function
+function installBrew() {
 
     #################################################################################################################
     #################################################################################################################
@@ -287,7 +289,6 @@ function installPKG() {
     ##
     ##  Variables
     ##
-    ##      $appname = Description of the App we are installing
     ##      $tempfile = location of temporary DMG file downloaded
     ##      $volume = name of volume mount point
     ##      $app = name of Application directory under /Applications
@@ -295,23 +296,111 @@ function installPKG() {
     ###############################################################
     ###############################################################
 
-    echo "$(date) | Installing $appname"
-
-    installer -pkg "$tempfile" -target /Applications
-
-    # Checking if the app was installed successfully
-    if [ "$?" = "0" ]; then
-
-        echo "$(date) | $appname Installed"
-        echo "$(date) | Cleaning Up"
-        rm -rf "$tempdir"
-
-        echo "$(date) | Application [$appname] succesfully installed"
-        fetchLastModifiedDate update
+    cd /opt
+    echo "$(date) | Installing Brew"
+    if [[ $(uname -m) == 'arm64' ]]; then
+        # Apple Silicon
+        brewPath="/opt/homebrew/bin/brew"
     else
+        # Intel
+        brewPath="/usr/local/Homebrew/bin/brew"
+    fi
 
-        echo "$(date) | Failed to install $appname"
-        rm -rf "$tempdir"
+    $brewPath --version
+    if [[ $? != 0 ]]; then
+        # Install Homebrew
+        installer -pkg "$tempfile" -target /Applications
+        # Checking if the app was installed successfully
+        if [ "$?" = "0" ]; then
+
+            echo "$(date) | Brew Installed"
+            echo "$(date) | Cleaning Up"
+            rm -rf "$tempdir"
+
+            echo "$(date) | Application Brew succesfully installed"
+            fetchLastModifiedDate update
+        else
+            echo "$(date) | Failed to install Brew"
+            rm -rf "$tempdir"
+            exit 1
+        fi
+    else
+        $brewPath update
+    fi
+
+}
+
+## Install App using Brew Function
+function installBrewApp() {
+
+    #################################################################################################################
+    #################################################################################################################
+    ##
+    ##  This function takes the following global variables and installs the app using Homebrew
+    ##
+    ##  Functions
+    ##
+    ##  Variables
+    ##
+    ##      $brewApp = name of Application to be installed by Brew
+    ##
+    ###############################################################
+    ###############################################################
+
+    cd /opt
+    if [[ $(uname -m) == 'arm64' ]]; then
+        # Apple Silicon
+        brewPath="/opt/homebrew/bin/brew"
+    else
+        # Intel
+        brewPath="/usr/local/Homebrew/bin/brew"
+    fi
+
+    echo "$(date) | Installing $brewApp using Homebrew"
+    if $brewPath list $1 &>/dev/null; then
+        echo "$(date) | Application ${1} is already installed"
+        $brewPath update
+        $brewPath upgrade $1
+    else
+        $brewPath install $1
+        echo "$(date) | Application $1 is installed"
+    fi
+
+}
+
+## Install App using Brew Function
+function installBrewTap() {
+
+    #################################################################################################################
+    #################################################################################################################
+    ##
+    ##  This function takes the following global variables and installs the tap using Homebrew
+    ##
+    ##  Functions
+    ##
+    ##  Variables
+    ##
+    ##      $brewTap = name of Brew Tap to be installed by Brew
+    ##
+    ###############################################################
+    ###############################################################
+
+    cd /opt
+    echo "$(date) | Installing $brewTap using Homebrew"
+    if [[ $(uname -m) == 'arm64' ]]; then
+        # Apple Silicon
+        brewPath="/opt/homebrew/bin/brew"
+    else
+        # Intel
+        brewPath="/usr/local/Homebrew/bin/brew"
+    fi
+
+    brewtaps=$($brewPath tap)
+    if [[ $brewtaps == *"$1"* ]]; then
+        echo "$(date) | Brew Tap $1 already installed"
+    else
+        $brewPath tap $1
+        echo "$(date) | Brew Tap $1 installed"
     fi
 
 }
@@ -387,7 +476,6 @@ else
     echo "$(date) | No need to install Rosetta on this version of macOS."
 fi
 
-
 ## Aria2c installation
 ARIA2="/usr/local/aria2/bin/aria2c"
 aria2Url="https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0-osx-darwin.dmg"
@@ -462,16 +550,12 @@ fi
 downloadApp
 
 ## Install Brew
-installPKG
+installBrew
+
+## Install mas-cli
+
+installBrewApp $brewApp
 
 ## Install Brew Cask Upgrade
-echo "$(date) | Installing Brew Cask Upgrade"
-/opt/homebrew/bin/brew tap buo/cask-upgrade
-brewtaps=$(/opt/homebrew/bin/brew tap)
-if [[ $brewtaps == *'buo/cask-upgrade'* ]]; then
-    echo "$(date) | Brew Cask Upgrade installed"
-    exit 0
-else
-    echo "$(date) | Brew Cask Upgrade not installed"
-    exit 1
-fi
+
+installBrewTap $brewTap
