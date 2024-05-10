@@ -7,11 +7,17 @@
   "button1text": "Exit (Installations will continue)",
   "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/MEMvENNBEE.png",
   "centreicon": false,
-  "iconsize": "400",
+  "iconsize": "500",
   "listitem": [
     {
       "title": "Company Portal",
       "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/CompanyPortal.png",
+      "status": "pending",
+      "statustext": "Pending"
+    },
+    {
+      "title": "One Drive",
+      "icon": "/Library/Application Support/Microsoft/Intune/Scripts/SwiftDialog/icons/OneDrive.png",
       "status": "pending",
       "statustext": "Pending"
     },
