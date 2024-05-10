@@ -18,7 +18,7 @@
 ## Feedback: neiljohn@microsoft.com
 
 # User Defined variables
-weburl="https://go.microsoft.com/fwlink/?linkid=823060"          # What is the Azure Blob Storage URL?
+weburl="https://g.live.com/0USSDMC_W5T/MacProdLatestBinary"      # What is the Azure Blob Storage URL?
 appname="OneDrive"                                               # The name of our App deployment script (also used for Octory monitor)
 app="OneDrive.app"                                               # The actual name of our App once installed
 processpath="/Applications/OneDrive.app/Contents/MacOS/OneDrive" # The process name of the App we are installing
