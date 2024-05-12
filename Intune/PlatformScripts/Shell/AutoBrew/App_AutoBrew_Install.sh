@@ -11,8 +11,6 @@
 currentRelease=$(curl --silent "https://api.github.com/repos/Homebrew/brew/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 swiftweburl="https://github.com/swiftDialog/swiftDialog/releases/download/v2.4.2/dialog-2.4.2-4755.pkg"
 appname="AutoBrew"          # The name of our App deployment script
-
-# Generated variables
 brewweburl="https://github.com/Homebrew/brew/releases/download/$currentRelease/Homebrew-$currentRelease.pkg"
 logandmetadir="/Library/Logs/Microsoft/Intune/Scripts/$appname" # The location of our logs
 tempdir=$(mktemp -d)
@@ -221,7 +219,7 @@ else
     brewPath="/usr/local/Homebrew/bin/brew"
 fi
 
-$brewPath --version
+$brewPath --version &>/dev/null
 if [[ $? != 0 ]]; then
     echo "$(date) | Downloading Homebrew from [$brewweburl]"
     cd "$tempdir"
@@ -249,7 +247,7 @@ fi
 echo "$(date) | Starting SwiftDialog Installation"
 cd /opt
 echo "$(date) | Checking for SwiftDialog"
-dialog --version
+dialog --version &>/dev/null
 if [[ $? != 0 ]]; then
     echo "$(date) | Downloading SwiftDialog from [$swiftweburl]"
     cd "$tempdir"
