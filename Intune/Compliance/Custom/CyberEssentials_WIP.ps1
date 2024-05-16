@@ -1,6 +1,6 @@
 # Variables
-$fwClient = '' # Third-party Firewall Client Name
-$avClient = '' # Third-party Antivirus Client Name
+$fwClient = 'ZoneAlarm NextGen Firewall' # Third-party Firewall Client Name
+$avClient = 'AVG Antivirus' # Third-party Antivirus Client Name
 $cyberEssentials = New-Object -TypeName PSObject
 
 # Guest Account
@@ -13,11 +13,10 @@ $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Guest account disa
 
 # Firewall
 if ($fwClient) {
-    $fwProduct = Get-WmiObject -Namespace root\securityCenter2 -class FirewallProduct | Where-Object { $_.displayName -eq $fwClient } | Select-Object -First 1
+    $fwProduct = Get-WmiObject -Namespace root\securityCenter2 -Class FirewallProduct | Where-Object { $_.displayName -eq $fwClient } | Select-Object -First 1
     if ($fwProduct) {
 
-        [int]$productState = $fwProduct.ProductState
-        $fwProductState = [System.Convert]::ToString($productState, 16).padleft(6, '0')
+        [string]$fwProductState = [System.Convert]::ToString($fwProduct.ProductState, 16).padleft(6, '0')
         $fwProtection = $fwProductState.substring(2, 2)
 
         $fwProtectionStatus = switch ($fwProtection) {
@@ -29,7 +28,7 @@ if ($fwClient) {
         $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value $fwProtectionStatus
     }
     else {
-        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value  -Value "Error: $fwClient product not found"
+        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value -Value "Error: $fwClient product not found"
     }
 }
 else {
@@ -47,7 +46,7 @@ else {
 if ($avClient) {
     $avProduct = Get-WmiObject -Namespace 'root\SecurityCenter2' -Class AntiVirusProduct | Where-Object { $_.displayName -eq $avClient } | Select-Object -First 1
     if ($avProduct) {
-        [int]$avProductState = [Convert]::ToString($avProduct.productState, 16).PadLeft(6, '0')
+        [string]$avProductState = [System.Convert]::ToString($avProduct.productState, 16).PadLeft(6, '0')
         $avRealTimeProtection = $avProductState.Substring(2, 2)
         $avDefinitions = $avProductState.Substring(4, 2)
 
@@ -88,10 +87,10 @@ else {
         $defenderSig = 'False'
     }
 
-    $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Defender antimalware service enabled" -Value $defenderAM
-    $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Defender antispyware enabled" -Value $defenderAS
-    $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Defender antivirus enabled" -Value $defenderAV
-    $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Defender signatures up-to-date" -Value $defenderSig
+    $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender antimalware service enabled' -Value $defenderAM
+    $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender antispyware enabled' -Value $defenderAS
+    $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender antivirus enabled' -Value $defenderAV
+    $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender signatures up-to-date' -Value $defenderSig
 
 }
 
@@ -108,13 +107,13 @@ $updateTime = Get-Item @(
 ) | Measure-Object -Maximum LastWriteTimeUtc | Select-Object -ExpandProperty Maximum
 
 $todayTime = Get-Date
-If ((New-TimeSpan -Start $updateTime -End $todayTime).Days -le 14) {
+If ((New-TimeSpan -Start $updateTime -End $todayTime).Days -le 31) {
     $updateAge = 'True'
 }
 else {
     $updateAge = 'False'
 }
-$cyberEssentials | Add-Member -MemberType NoteProperty -Name "Windows updated in the last 14-days" -Value $updateAge
+$cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Windows operating system up-to-date' -Value $updateAge
 
 
 # Output for Intune
