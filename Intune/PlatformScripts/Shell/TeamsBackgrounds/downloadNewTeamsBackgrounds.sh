@@ -13,7 +13,7 @@ backGroundUrls=("https://raw.githubusercontent.com/ennnbeee/ennnbeee.github.io/m
   "https://raw.githubusercontent.com/ennnbeee/ennnbeee.github.io/main/img/feature-bg.png")
 
 scriptName="SetNewTeamsBackgrounds"
-logAndMetaDir="$HOME/Library/Logs/Microsoft/Intune/Scripts/$scriptName" # Running under the user context
+logAndMetaDir="$HOME/Library/Logs/Microsoft/IntuneScripts/$scriptName" # Running under the user context
 log="$logAndMetaDir/$scriptName.log"
 
 ##
