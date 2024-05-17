@@ -1,7 +1,7 @@
 {
     "Rules": [
         {
-            "SettingName": "Guest account disabled",
+            "SettingName": "Built-in Guest account disabled",
             "Operator": "IsEquals",
             "DataType": "String",
             "Operand": "True",
