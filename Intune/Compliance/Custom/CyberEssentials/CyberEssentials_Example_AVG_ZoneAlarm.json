@@ -15,6 +15,48 @@
             ]
         },
         {
+            "SettingName": "Autoplay disabled",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "True",
+            "MoreInfoUrl": "https://www.stigviewer.com/stig/windows_10/2017-12-01/finding/V-63673",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "Autoplay for all drives in enabled",
+                    "Description": "To comply with Cyber Essentials Autoplay for all devices must be disabled."
+                }
+            ]
+        },
+        {
+            "SettingName": "AVG Antivirus real time protection enabled",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "True",
+            "MoreInfoUrl": "https://support.avg.com/SupportArticleView?l=en&urlname=check-avg-antivirus-status",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "The AVG Antivirus real time protection is disabled",
+                    "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
+                }
+            ]
+        },
+        {
+            "SettingName": "AVG Antivirus definitions up-to-date",
+            "Operator": "IsEquals",
+            "DataType": "String",
+            "Operand": "True",
+            "MoreInfoUrl": "https://support.avg.com/SupportArticleView?l=en&urlname=update-avg-antivirus",
+            "RemediationStrings": [
+                {
+                    "Language": "en_US",
+                    "Title": "AVG Antivirus definitions are out of date",
+                    "Description": "To comply with Cyber Essentials your device must be protected by an up-to-date antivirus solution."
+                }
+            ]
+        },
+        {
             "SettingName": "ZoneAlarm NextGen Firewall firewall enabled",
             "Operator": "IsEquals",
             "DataType": "String",
@@ -25,62 +67,6 @@
                     "Language": "en_US",
                     "Title": "ZoneAlarm NextGen Firewall is disabled",
                     "Description": "To comply with Cyber Essentials all network profiles firewalls must be enabled."
-                }
-            ]
-        },
-        {
-            "SettingName": "Defender antimalware service enabled",
-            "Operator": "IsEquals",
-            "DataType": "String",
-            "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
-            "RemediationStrings": [
-                {
-                    "Language": "en_US",
-                    "Title": "The Defender Antimalware service is disabled",
-                    "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
-                }
-            ]
-        },
-        {
-            "SettingName": "Defender antispyware enabled",
-            "Operator": "IsEquals",
-            "DataType": "String",
-            "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
-            "RemediationStrings": [
-                {
-                    "Language": "en_US",
-                    "Title": "Defender Antispyware service is disabled",
-                    "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
-                }
-            ]
-        },
-        {
-            "SettingName": "Defender antivirus enabled",
-            "Operator": "IsEquals",
-            "DataType": "String",
-            "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
-            "RemediationStrings": [
-                {
-                    "Language": "en_US",
-                    "Title": "Defender Antivirus is disabled",
-                    "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
-                }
-            ]
-        },
-        {
-            "SettingName": "Defender signatures up-to-date",
-            "Operator": "IsEquals",
-            "DataType": "String",
-            "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
-            "RemediationStrings": [
-                {
-                    "Language": "en_US",
-                    "Title": "Defender Antivirus signatures are out of date",
-                    "Description": "To comply with Cyber Essentials your device must be protected by an up-to-date antivirus solution."
                 }
             ]
         },

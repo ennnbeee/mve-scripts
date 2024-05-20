@@ -1,6 +1,6 @@
 # Variables
-$fwClient = '' # Third-party Firewall Client Name
 $avClient = '' # Third-party Antivirus Client Name
+$fwClient = '' # Third-party Firewall Client Name
 $cyberEssentials = New-Object -TypeName PSObject
 
 # Guest Account
@@ -11,7 +11,7 @@ $guestAccountStatus = switch ($guestAccount.Disabled) {
 }
 $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Built-in Guest account disabled' -Value $guestAccountStatus
 
-# AutoRun/Autoplay
+# Autoplay
 Try {
     $autorunState = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' -Name 'NoDriveTypeAutoRun'
     if ($autorunState -eq 255) {
@@ -133,6 +133,4 @@ $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Windows operating 
 
 
 # Output for Intune
-# return $cyberEssentials | ConvertTo-Json -Compress
-
-$cyberEssentials
+return $cyberEssentials | ConvertTo-Json -Compress
