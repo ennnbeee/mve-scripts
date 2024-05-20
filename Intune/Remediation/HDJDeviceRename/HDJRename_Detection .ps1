@@ -1,16 +1,16 @@
 Try {
-    $Details = Get-ComputerInfo
-    if (-not $Details.CsPartOfDomain) {
+    $details = Get-ComputerInfo
+    if (-not $details.CsPartOfDomain) {
         Write-Output 'Not Domain Joined'
         Exit 0
     }
 
-    $Serial = Get-WmiObject Win32_bios | Select-Object -ExpandProperty SerialNumber
+    $serial = Get-WmiObject Win32_bios | Select-Object -ExpandProperty SerialNumber
     If (Get-WmiObject -Class win32_battery) {
-        $newName = 'L-' + $Serial
+        $newName = 'L-' + $serial
     }
     Else {
-        $newName = 'D-' + $Serial
+        $newName = 'D-' + $serial
     }
 
     $newName = $newName.Replace(' ', '')
@@ -18,12 +18,12 @@ Try {
         $newName = $newName.substring(0, 15)
     }
 
-    If ($Details.CsName -ne $newName) {
-        Write-Warning "Existing Computer name $($Details.CsName) should be $newName"
+    If ($details.CsName -ne $newName) {
+        Write-Warning "Existing Computer name $($details.CsName) should be $newName"
         Exit 1
     }
     Else {
-        Write-Output "Computer has correct name: $($Details.CsName)"
+        Write-Output "Computer has correct name: $($details.CsName)"
         Exit 0
     }
 }

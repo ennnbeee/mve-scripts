@@ -1,6 +1,6 @@
 # Variables
-$fwClient = 'ZoneAlarm NextGen Firewall' # Third-party Firewall Client Name
-$avClient = 'AVG Antivirus' # Third-party Antivirus Client Name
+$fwClient = '' # Third-party Firewall Client Name
+$avClient = '' # Third-party Antivirus Client Name
 $cyberEssentials = New-Object -TypeName PSObject
 
 # Guest Account
@@ -11,36 +11,21 @@ $guestAccountStatus = switch ($guestAccount.Disabled) {
 }
 $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Guest account disabled' -Value $guestAccountStatus
 
-# Firewall
-if ($fwClient) {
-    $fwProduct = Get-WmiObject -Namespace root\securityCenter2 -Class FirewallProduct | Where-Object { $_.displayName -eq $fwClient } | Select-Object -First 1
-    if ($fwProduct) {
-
-        [string]$fwProductState = [System.Convert]::ToString($fwProduct.ProductState, 16).padleft(6, '0')
-        $fwProtection = $fwProductState.substring(2, 2)
-
-        $fwProtectionStatus = switch ($fwProtection) {
-            '00' { 'False' }
-            '10' { 'True' }
-            default { 'Unknown' }
-        }
-
-        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value $fwProtectionStatus
+# AutoRun/Autoplay
+Try {
+    $autorunState = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' -Name 'NoDriveTypeAutoRun'
+    if ($autorunState -eq 255) {
+        $autorunStatus = 'True'
     }
     else {
-        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value -Value "Error: $fwClient product not found"
+        $autorunStatus = 'False'
     }
 }
-else {
-    # Defender Firewall Status
-    $fwProfiles = Get-NetFirewallProfile
-    foreach ($fwProfile in $fwProfiles) {
-
-        $fwStatus = $fwProfile.Enabled
-        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Windows Defender $($fwProfile.name) firewall enabled" -Value $fwStatus
-
-    }
+Catch {
+    $autorunStatus = 'False'
 }
+
+$cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Autoplay disabled' -Value $autorunStatus
 
 # Antivirus
 if ($avClient) {
@@ -92,6 +77,37 @@ else {
     $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender antivirus enabled' -Value $defenderAV
     $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender signatures up-to-date' -Value $defenderSig
 
+}
+
+# Firewall
+if ($fwClient) {
+    $fwProduct = Get-WmiObject -Namespace root\securityCenter2 -Class FirewallProduct | Where-Object { $_.displayName -eq $fwClient } | Select-Object -First 1
+    if ($fwProduct) {
+
+        [string]$fwProductState = [System.Convert]::ToString($fwProduct.ProductState, 16).padleft(6, '0')
+        $fwProtection = $fwProductState.substring(2, 2)
+
+        $fwProtectionStatus = switch ($fwProtection) {
+            '00' { 'False' }
+            '10' { 'True' }
+            default { 'Unknown' }
+        }
+
+        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value $fwProtectionStatus
+    }
+    else {
+        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "$fwClient firewall enabled" -Value "Error: $fwClient product not found"
+    }
+}
+else {
+    # Defender Firewall Status
+    $fwProfiles = Get-NetFirewallProfile
+    foreach ($fwProfile in $fwProfiles) {
+
+        $fwStatus = $fwProfile.Enabled
+        $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Windows Defender $($fwProfile.name) firewall enabled" -Value $fwStatus
+
+    }
 }
 
 # Windows Updates

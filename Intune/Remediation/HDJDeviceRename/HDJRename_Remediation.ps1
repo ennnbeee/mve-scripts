@@ -1,5 +1,5 @@
 $domain = 'ennbee.local'
-$waittime = '60'
+$waitTime = '60'
 
 Try {
 
@@ -8,12 +8,12 @@ Try {
         Write-Error "No connectivity to $domain"
     }
 
-    $Serial = Get-WmiObject Win32_bios | Select-Object -ExpandProperty SerialNumber
+    $serial = Get-WmiObject Win32_bios | Select-Object -ExpandProperty SerialNumber
     If (Get-WmiObject -Class win32_battery) {
-        $newName = 'L-' + $Serial
+        $newName = 'L-' + $serial
     }
     Else {
-        $newName = 'D-' + $Serial
+        $newName = 'D-' + $serial
     }
 
     $newName = $newName.Replace(' ', '')
@@ -22,10 +22,10 @@ Try {
     }
 
     Rename-Computer -NewName $newName
-    $waitinseconds = (New-TimeSpan -Minutes $waittime).TotalSeconds
+    $waitSeconds = (New-TimeSpan -Minutes $waitTime).TotalSeconds
     Write-Host "Initiating a restart in $waitime minutes"
-    & shutdown.exe /g /t $waitinseconds /f /c 'Restarting the computer in 60 minutes due to a computer name change. Please save your work.'
-    Write-Output "Computer renamed from $($Details.CsName) to $newName"
+    & shutdown.exe /g /t $waitSeconds /f /c "Restarting your computer in $waitTime minutes due to a computer name change. Please save your work."
+    Write-Output "Computer renamed from $($details.CsName) to $newName"
 }
 Catch {
     Write-Error $_.Exception
