@@ -29,57 +29,29 @@
             ]
         },
         {
-            "SettingName": "Defender antimalware service enabled",
+            "SettingName": "AVG Antivirus real time protection enabled",
             "Operator": "IsEquals",
             "DataType": "String",
             "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
+            "MoreInfoUrl": "https://support.avg.com/SupportArticleView?l=en&urlname=check-avg-antivirus-status",
             "RemediationStrings": [
                 {
                     "Language": "en_US",
-                    "Title": "The Defender Antimalware service is disabled",
+                    "Title": "The AVG Antivirus real time protection is disabled",
                     "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
                 }
             ]
         },
         {
-            "SettingName": "Defender antispyware enabled",
+            "SettingName": "AVG Antivirus definitions up-to-date",
             "Operator": "IsEquals",
             "DataType": "String",
             "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
+            "MoreInfoUrl": "https://support.avg.com/SupportArticleView?l=en&urlname=update-avg-antivirus",
             "RemediationStrings": [
                 {
                     "Language": "en_US",
-                    "Title": "Defender Antispyware service is disabled",
-                    "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
-                }
-            ]
-        },
-        {
-            "SettingName": "Defender antivirus enabled",
-            "Operator": "IsEquals",
-            "DataType": "String",
-            "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
-            "RemediationStrings": [
-                {
-                    "Language": "en_US",
-                    "Title": "Defender Antivirus is disabled",
-                    "Description": "To comply with Cyber Essentials your device must be protected by an antivirus solution."
-                }
-            ]
-        },
-        {
-            "SettingName": "Defender signatures up-to-date",
-            "Operator": "IsEquals",
-            "DataType": "String",
-            "Operand": "True",
-            "MoreInfoUrl": "https://learn.microsoft.com/en-us/mem/intune/user-help/turn-on-defender-windows",
-            "RemediationStrings": [
-                {
-                    "Language": "en_US",
-                    "Title": "Defender Antivirus signatures are out of date",
+                    "Title": "AVG Antivirus definitions are out of date",
                     "Description": "To comply with Cyber Essentials your device must be protected by an up-to-date antivirus solution."
                 }
             ]

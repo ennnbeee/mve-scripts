@@ -9,7 +9,7 @@ $guestAccountStatus = switch ($guestAccount.Disabled) {
     'True' { 'True' }
     'False' { 'False' }
 }
-$cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Guest account disabled' -Value $guestAccountStatus
+$cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Built-in Guest account disabled' -Value $guestAccountStatus
 
 # AutoRun/Autoplay
 Try {
