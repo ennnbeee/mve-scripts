@@ -1,5 +1,4 @@
 $ready = 0
-
 $dsRegCmd = dsregcmd /status
 $dsRegOutput = New-Object -TypeName PSObject
 

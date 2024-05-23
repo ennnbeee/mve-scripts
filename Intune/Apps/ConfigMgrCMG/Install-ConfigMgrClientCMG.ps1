@@ -39,7 +39,7 @@ try {
 
     # Create a tag file just so Intune knows this was run
     $tagPath = "$($env:ProgramData)\Microsoft\CCMCMGInstall"
-    While (-not (Test-Path $tagPath)) {
+    If (-not (Test-Path $tagPath)) {
         mkdir $tagPath -Force
     }
     Set-Content -Path "$tagPath\Install-CCMClient.ps1.tag" -Value "Installed"
