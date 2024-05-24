@@ -42,7 +42,8 @@ try {
     If (-not (Test-Path $tagPath)) {
         mkdir $tagPath -Force
     }
-    Set-Content -Path "$tagPath\Install-CCMClient.ps1.tag" -Value "Installed"
+    $scriptName = $MyInvocation.MyCommand.Name
+    Set-Content -Path "$tagPath\$scriptName.tag" -Value "Installed"
 }
 
 catch {
