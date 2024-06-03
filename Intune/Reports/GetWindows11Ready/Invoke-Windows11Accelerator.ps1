@@ -247,7 +247,7 @@ else {
         Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
         Disconnect-MgGraph
         Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
     }
 
     $graphDetails = Get-MgContext
