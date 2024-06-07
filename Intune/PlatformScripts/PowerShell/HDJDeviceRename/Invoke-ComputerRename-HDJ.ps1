@@ -9,7 +9,7 @@
 .LICENSEURI
 .PROJECTURI
 .ICONURI
-.EXTERNALMODULEDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
@@ -18,15 +18,15 @@ Version 1.1: Updated version.
 .PRIVATEDATA
 #>
 
-<# 
-.DESCRIPTION 
- Rename the computer 
-#> 
+<#
+.DESCRIPTION
+ Rename the computer
+#>
 
 Param()
 
 #Sets the variables for the customer
-$domain = 'westyorksfire.gov.uk' #local domain
+$domain = 'ennbee.local' #local domain
 $waittime = '60' #sets the restart wait time in minutes
 
 
@@ -78,9 +78,9 @@ if ($goodToGo) {
     Else {
         $newName = 'D-' + $Serial
     }
-    
+
     $newName = $newName.Replace(' ', '') #Removes spaces
-    
+
     #shortens name
     if ($newName.Length -ge 15) {
         $newName = $newName.substring(0, 15)
@@ -132,7 +132,7 @@ else {
     $triggers += New-ScheduledTaskTrigger -Daily -At 9am
     $triggers += New-ScheduledTaskTrigger -AtLogOn -RandomDelay $timespan
     $triggers += New-ScheduledTaskTrigger -AtStartup -RandomDelay $timespan
-    
+
     # Register the scheduled task
     Register-ScheduledTask -User SYSTEM -Action $action -Trigger $triggers -TaskName 'RenameComputer' -Description 'RenameComputer' -Force -TaskPath 'Intune Helpers'
     Write-Host 'Scheduled task created.'
