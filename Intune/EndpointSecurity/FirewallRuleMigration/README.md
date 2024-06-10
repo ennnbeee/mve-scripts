@@ -12,7 +12,7 @@ Updated version of the [Microsoft tool](https://learn.microsoft.com/en-us/mem/in
 
 ## Script Use
 
-- Download the **FirewallRuleMigration** folder as a zip and unzip to your Windows device.
+- Download the **FirewallRuleMigration.zip** file and unzip on your Windows device.
 - Open PowerShell as Administrator.
 - Navigate to the extracted folder, your PowerShell prompt should be in the **FirewallRuleMigration** folder.
 - Run `Set-ExecutionPolicy Bypass` accepting all prompts.
