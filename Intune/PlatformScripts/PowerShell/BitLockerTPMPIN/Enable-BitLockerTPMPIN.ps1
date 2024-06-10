@@ -1,4 +1,3 @@
-# Enables BitLocker encryption with initial PIN Set to a serial number
 Try {
     $osVolume = Get-BitLockerVolume | Where-Object { $_.VolumeType -eq 'OperatingSystem' }
     if ($osVolume.VolumeStatus -eq 'FullyDecrypted') {
@@ -20,7 +19,6 @@ Try {
         ((Get-BitLockerVolume).KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }).KeyProtectorId | ForEach-Object {
             BackupToAAD-BitLockerKeyProtector -MountPoint $osVolume.MountPoint -KeyProtectorId $_
         }
-
         Exit 0
     }
     else {
@@ -31,5 +29,5 @@ Try {
 Catch {
     $ErrorMessage = $_.Exception.Message
     Write-Warning $ErrorMessage
-    Exit 2000
+    Exit 1
 }
