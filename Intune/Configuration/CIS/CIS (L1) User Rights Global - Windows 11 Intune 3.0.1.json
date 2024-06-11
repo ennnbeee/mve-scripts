@@ -4,7 +4,7 @@
     "creationSource": null,
     "description": "",
     "lastModifiedDateTime": "2024-04-30T10:59:06.1748047Z",
-    "name": "CIS (L1) User Rights - Windows 11 Intune 3.0.1",
+    "name": "CIS (L1) User Rights Global - Windows 11 Intune 3.0.1",
     "platforms": "windows10",
     "priorityMetaData": null,
     "roleScopeTagIds": [
