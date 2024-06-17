@@ -51,7 +51,7 @@ foreach ($service in $cisServices) {
     }
 }
 
-if ($disabledCount -ne 0){
+if ($disabledCount -ne 0) {
     Write-Output "Found $disabledCount service(s) that should be disabled for CIS Level 1."
     Exit 1
 }
