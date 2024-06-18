@@ -1,11 +1,3 @@
-<##############################################################################
-
-    CIS Microsoft Intune for Windows 10 Benchmark v3.0.1 Build Kit script
-    Section #69 - System Services
-    Level 2 (L2) - High Security/Sensitive Data Environment (limited functionality)
-
-##############################################################################>
-
 $cisServices = @(
     'BTAGService', # Bluetooth Audio Gateway Service
     'bthserv', # Bluetooth Support Service
@@ -35,8 +27,7 @@ $cisServices = @(
 
 # Get current state on the services in the array above.
 $localServices = Get-Service -Name $cisServices -ErrorAction SilentlyContinue
-
-$disabledCount = 0
+$notDisabled = 0
 
 foreach ($service in $cisServices) {
     # Make sure service name in the list matches with local system services.
@@ -45,10 +36,10 @@ foreach ($service in $cisServices) {
 
     if ($foundService) {
         if ($foundService.StartType -ne 'Disabled') {
-            $disabledCount++
-            Set-Service $FoundService.Name -StartupType Disabled -Verbose
+            $notDisabled++
+            Set-Service $FoundService.Name -StartupType Disabled -Force -ErrorAction SilentlyContinue
         }
     }
 }
-Write-Output "Found $disabledCount service(s) that are now disabled."
+Write-Output "Found $notDisabled service(s) that are now disabled."
 Exit 0
