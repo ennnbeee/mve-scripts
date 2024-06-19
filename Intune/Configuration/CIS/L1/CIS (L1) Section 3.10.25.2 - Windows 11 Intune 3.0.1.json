@@ -28,7 +28,7 @@
                 "settingInstanceTemplateReference": null,
                 "choiceSettingValue": {
                     "settingValueTemplateReference": null,
-                    "value": "device_vendor_msft_policy_config_windowslogon_dontdisplaynetworkselectionui_1",
+                    "value": "device_vendor_msft_policy_config_windowslogon_dontdisplaynetworkselectionui_0",
                     "children": []
                 }
             }
