@@ -29,17 +29,24 @@ $cisServices = @(
 $localServices = Get-Service -Name $cisServices -ErrorAction SilentlyContinue
 $notDisabled = 0
 
-foreach ($service in $cisServices) {
-    # Make sure service name in the list matches with local system services.
-    # Added because of Computer Browser mismatch with "bowser" service
-    $foundService = $localServices | Where-Object { $_.Name -eq $service }
+try {
+    foreach ($service in $cisServices) {
+        # Make sure service name in the list matches with local system services.
+        # Added because of Computer Browser mismatch with "bowser" service
+        $foundService = $localServices | Where-Object { $_.Name -eq $service }
 
-    if ($foundService) {
-        if ($foundService.StartType -ne 'Disabled') {
-            $notDisabled++
-            Set-Service $FoundService.Name -StartupType Disabled -Force -ErrorAction SilentlyContinue
+        if ($foundService) {
+            if ($foundService.StartType -ne 'Disabled') {
+                $notDisabled++
+                Set-Service $FoundService.Name -StartupType Disabled -Force -ErrorAction SilentlyContinue
+            }
         }
     }
+    Write-Output "Found $notDisabled service(s) that are now disabled."
+    Exit 0
 }
-Write-Output "Found $notDisabled service(s) that are now disabled."
-Exit 0
+catch {
+    Write-Output "Unable to disable $notDisabled service(s)."
+    Exit 2000
+}
+

@@ -41,11 +41,11 @@ foreach ($cisService in $cisServices) {
     }
 }
 
-if ($notDisabled -ne 0) {
-    Write-Output "Found $notDisabled service(s) that should be disabled for CIS Level 1."
+if ($notDisabled -gt 0) {
+    Write-Output "Found $notDisabled service(s) that should be disabled for CIS Level 2."
     Exit 1
 }
 else {
-    Write-Output "All required servicess are disabled for CIS Level 1."
+    Write-Output "All required services are disabled for CIS Level 2."
     Exit 0
 }
