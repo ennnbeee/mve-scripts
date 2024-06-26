@@ -1,9 +1,7 @@
-#Windows Profressional Settings
+# Windows Pro User Settings
 $regSettings = @()
-$regSettings += [pscustomobject]@{path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; name = 'DisableWindowsConsumerFeatures'; value = '1'; type = 'DWord' }
+$regSettings += [pscustomobject]@{path = 'HKCU:\Software\Policies\Microsoft\Windows\CloudContent'; name = 'DisableSpotlightCollectionOnDesktop'; value = '1'; type = 'DWord' }
 
-
-#endregion Variables
 Try {
     foreach ($regSetting in $regSettings) {
         if (!(Test-Path $($regSetting.path))){

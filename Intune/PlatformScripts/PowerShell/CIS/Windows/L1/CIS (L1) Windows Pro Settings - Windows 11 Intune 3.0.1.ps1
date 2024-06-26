@@ -1,4 +1,4 @@
-#Windows Profressional Settings
+# Windows Pro Device Settings
 $regSettings = @()
 $regSettings += [pscustomobject]@{path = 'HKLM:\Software\Policies\Microsoft\Windows\CloudContent'; name = 'DisableWindowsConsumerFeatures'; value = '1'; type = 'DWord' }
 $regSettings += [pscustomobject]@{path = 'HKLM:\Software\Policies\Microsoft\Windows\Appx'; name = 'BlockNonAdminUserInstall'; value = '1'; type = 'DWord' }
