@@ -4,7 +4,7 @@
     "creationSource": null,
     "description": "",
     "lastModifiedDateTime": "2024-06-21T14:22:33.6834554Z",
-    "name": "CIS (L1) Windows Hello for Business - Windows 11 Intune 3.0.1",
+    "name": "CIS (L1) Windows Hello for Business (User) - Windows 11 Intune 3.0.1",
     "platforms": "windows10",
     "priorityMetaData": null,
     "roleScopeTagIds": [
