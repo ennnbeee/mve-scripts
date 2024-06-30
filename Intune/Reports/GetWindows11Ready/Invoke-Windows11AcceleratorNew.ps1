@@ -240,6 +240,43 @@ Function Get-EntraIDObject() {
     }
 }
 
+Function Get-ManagedDevices() {
+
+    [cmdletbinding()]
+    param
+    (
+
+    )
+
+    $graphApiVersion = 'beta'
+    $Resource = 'deviceManagement/managedDevices'
+
+    try {
+
+        $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource"
+        $GraphResults = Invoke-MgGraphRequest -Uri $uri -Method Get
+
+        $Results = @()
+        $Results += $GraphResults.value
+
+        $Pages = $GraphResults.'@odata.nextLink'
+        while ($null -ne $Pages) {
+
+            $Additional = Invoke-MgGraphRequest -Uri $Pages -Method Get
+
+            if ($Pages) {
+                $Pages = $Additional.'@odata.nextLink'
+            }
+            $Results += $Additional.value
+        }
+        $Results
+    }
+    catch {
+        Write-Error $Error[0].ErrorDetails.Message
+        break
+    }
+}
+
 #endregion Functions
 
 #region authentication
@@ -339,16 +376,20 @@ Write-Host "    - Unknown: ($target.$extensionAttribute -eq "Unknown-W11-$featur
 Write-Host
 Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
 Write-Host
-Write-Host "Getting $target objects and associated IDs from Entra ID..." -ForegroundColor Cyan
 if ($target -eq 'user') {
+    Write-Host 'Getting user objects and associated IDs from Entra ID...' -ForegroundColor Cyan
     $entraUsers = Get-EntraIDObject -object User | Where-Object { $_.accountEnabled -eq 'true' -and $_.userType -eq 'Member' }
     Write-Host "Found $($entraUsers.Count) user objects and associated IDs from Entra ID." -ForegroundColor Green
     Write-Host
+    Write-Host 'Getting device objects and associated IDs from Microsoft Intune..' -ForegroundColor Cyan
+    $intuneDevices = Get-ManagedDevices | Where-Object { $_.operatingSystem -eq 'Windows' }
+    Write-Host "Found $($intuneDevices.Count) device objects and associated IDs from Microsoft Intune." -ForegroundColor Green
+    Write-Host
 }
+Write-Host 'Getting device objects and associated IDs from Entra ID...' -ForegroundColor Cyan
 $entraDevices = Get-EntraIDObject -object Device | Where-Object { $_.operatingSystem -eq 'Windows' }
 Write-Host "Found $($entraDevices.Count) Windows devices and associated IDs from Entra ID." -ForegroundColor Green
 Write-Host
-
 Write-Host "Checking for existing data in attribute $extensionAttribute in Entra ID..." -ForegroundColor Cyan
 
 $attributeErrors = 0
@@ -379,6 +420,8 @@ if ($attributeErrors -gt 0) {
     Write-Host "Please review the objects reporting as having existing data in the selected attribute $extensionAttribute, and run the script using a different attribute selection." -ForegroundColor Red
     break
 }
+Write-Host "No issues found using the selected attribute $extensionAttribute for risk assignment." -ForegroundColor Green
+Write-Host
 
 #region Feature Update Readiness
 If ($featureUpdateBuild -eq '22H2') {
