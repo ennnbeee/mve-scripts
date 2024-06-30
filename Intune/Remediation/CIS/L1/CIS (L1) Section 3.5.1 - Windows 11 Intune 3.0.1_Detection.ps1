@@ -11,7 +11,7 @@ Try {
     }
 
     # if the key and dword exist checks the value.
-    if ($value -ne '1') {
+    if ($value -ne '0') {
         Write-Warning "$setting enabled."
         Exit 1
     }

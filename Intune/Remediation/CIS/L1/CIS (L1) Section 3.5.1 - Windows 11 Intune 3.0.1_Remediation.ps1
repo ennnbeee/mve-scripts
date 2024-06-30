@@ -5,7 +5,7 @@ Try {
     # checks if the key exists, if not creates the key and AutoAdminLogon string.
     if ($path -eq $false) {
         New-Item -Path $registry -Force | Out-Null
-        New-ItemProperty -Path $registry -Name $setting  -Value 1 -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $registry -Name $setting  -Value 0 -PropertyType String -Force | Out-Null
         Write-Output "$setting disabled."
         Exit 0
     }
@@ -14,12 +14,12 @@ Try {
         Try {
             # if the AutoAdminLogon dword exists updates it.
             Get-ItemPropertyValue -Path $registry -Name $setting
-            Set-ItemProperty -Path $registry -Name $setting -Value 1
+            Set-ItemProperty -Path $registry -Name $setting -Value 0
             Write-Output "$setting disabled."
             Exit 0
         }
         Catch {
-            New-ItemProperty -Path $registry -Name $setting -Value 1 -PropertyType string -Force | Out-Null
+            New-ItemProperty -Path $registry -Name $setting -Value 0 -PropertyType string -Force | Out-Null
             Write-Output "$setting disabled."
             Exit 0
         }
