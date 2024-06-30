@@ -564,9 +564,11 @@ foreach ($device in $featureUpdateReportDetails) {
         'SystemRequirements'  = $device[11]
         'RiskState'           = $riskState
         'deviceObjectID'      = $(($entraDevices | Where-Object { $_.deviceid -eq $device[0] }).id)
-        'userObjectID'        = $(($entraDevices | Where-Object { $_.deviceid -eq $device[0] }).id)
+        'userObjectID'        = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $device[0] }).userId)
+        'userPrincipalName'   = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $device[0] }).userPrincipalName)
     }
 }
+$reportArray = $reportArray | Sort-Object ReadinessStatus
 
 Write-Host "Processed Windows 11 $featureUpdateBuild feature update readiness data for $($featureUpdateReport.TotalRowCount) devices." -ForegroundColor Green
 Write-Host
@@ -580,9 +582,8 @@ Write-Host
 Write-Host "Assigning the Risk attributes to $extensionAttribute..." -ForegroundColor cyan
 Write-Host
 Foreach ($object in $reportArray) {
-    if ($object.ReadinessStatus -ne '4') {
 
-        $JSON = @"
+    $JSON = @"
         {
             "$extAttribute": {
                 "$extensionAttribute": "$($object.RiskState)"
@@ -590,30 +591,27 @@ Foreach ($object in $reportArray) {
         }
 "@
 
-
-        # Sleep to stop throttling issues
-        Start-Sleep -Seconds $rndWait
+    # Sleep to stop throttling issues
+    Start-Sleep -Seconds $rndWait
+    if ($target -eq 'device') {
         Add-ObjectAttribute -object Device -Id $object.deviceObjectID -JSON $JSON
-        $riskColour = switch ($($object.RiskState)) {
-            "LowRisk-W11-$featureUpdateBuild" { 'Green' }
-            "MediumRisk-W11-$featureUpdateBuild" { 'Yellow' }
-            "HighRisk-W11-$featureUpdateBuild" { 'Red' }
-            "NotReady-W11-$featureUpdateBuild" { 'Red' }
-            "Unknown-W11-$featureUpdateBuild" { 'Cyan' }
-        }
+    }
+    else {
+        Add-ObjectAttribute -object User -Id $object.userObjectID -JSON $JSON
+    }
+
+    $riskColour = switch ($($object.RiskState)) {
+        "LowRisk-W11-$featureUpdateBuild" { 'Green' }
+        "MediumRisk-W11-$featureUpdateBuild" { 'Yellow' }
+        "HighRisk-W11-$featureUpdateBuild" { 'Red' }
+        "NotReady-W11-$featureUpdateBuild" { 'Red' }
+        "Unknown-W11-$featureUpdateBuild" { 'Cyan' }
+    }
+    if ($target -eq 'device') {
         Write-Host "$($object.DeviceName) assigned risk tag $($object.RiskState) to $extensionAttribute for Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
     }
-    Else {
-        $JSON = @"
-        {
-            "extensionAttributes": {
-                "$extensionAttribute": ""
-            }
-        }
-"@
-        Start-Sleep -Seconds $rndWait
-        Add-ObjectAttribute -object Device -Id $object.deviceObjectID -JSON $JSON
-        Write-Host "$($object.DeviceName) already updated to Windows 11 $featureUpdateBuild existing $extensionAttribute value cleared." -ForegroundColor White
+    else {
+        Write-Host "$($object.userPrincipalName) assigned risk tag $($object.RiskState) to $extensionAttribute for Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
     }
 }
 Write-Host
