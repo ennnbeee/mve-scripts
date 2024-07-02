@@ -1,7 +1,6 @@
 Try {
     # Name Prefix
     $namePrefix = 'ENB-'
-    $restartTimeMins = '60'
 
     # Get device information, removes non alphabet characters, sets to uppercase.
     $deviceDetails = Get-ComputerInfo
@@ -21,4 +20,3 @@ Catch {
     Write-Error $_.Exception
     Exit 2000
 }
-

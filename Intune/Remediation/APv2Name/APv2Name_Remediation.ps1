@@ -12,7 +12,6 @@ if ($deviceName.Length -ge 15) {
     $deviceName = $deviceName.substring(0, 15)
 }
 
-
 try {
     Rename-Computer -NewName $deviceName
     # If in OOBE force restart
