@@ -1,6 +1,5 @@
 # Name Prefix
 $namePrefix = 'ENB-'
-$restartTimeMins = '60'
 
 # Get device information, removes non alphabet characters, sets to uppercase.
 $deviceDetails = Get-ComputerInfo
@@ -15,15 +14,7 @@ if ($deviceName.Length -ge 15) {
 if ($deviceDetails.CsName -ne $deviceName) {
     try {
         Rename-Computer -NewName $deviceName
-        # If in OOBE force restart
-        if ($deviceDetails.CsUserName -match 'defaultUser') {
-            Exit 1641
-        }
-        else {
-            $restartTimeSecs = (New-TimeSpan -Minutes $restartTimeMins).TotalSeconds
-            & shutdown.exe /g /t $restartTimeSecs /f /c "Restarting your computer in $restartTimeMins minutes due to a computer name change. Please save your work."
-            Exit 0
-        }
+        Exit 1641
     }
     catch {
         Exit 1
