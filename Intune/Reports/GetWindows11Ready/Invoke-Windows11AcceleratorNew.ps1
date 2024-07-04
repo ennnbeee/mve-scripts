@@ -68,9 +68,12 @@ param(
 
 )
 
+$featureUpdateBuild = '23H2'
 $tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
-
+$target = 'user'
 $extensionAttribute = '10'
+$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All'
+
 #region Functions
 Function Test-JSON() {
 
@@ -333,6 +336,11 @@ else {
 $ProgressPreference = 'SilentlyContinue';
 $rndWait = Get-Random -Minimum 1 -Maximum 5
 $extensionAttribute = 'extensionAttribute' + $extensionAttribute
+$fu = Switch ($featureUpdateBuild) {
+    '22H2' { "NI22H2" }
+    '23H2' { "NI23H2" }
+    '24H2' { "NI24H2" }
+}
 #endregion Variables
 
 
@@ -352,7 +360,8 @@ Write-Host '╚═╝░░╚═╝░╚════╝░░╚════�
 Write-Host ''
 Write-Host '                            By Nick Benton (@ennnbeee)'
 Write-Host '                                Version : 1.1.0'
-
+Write-Host
+Write-Host
 #region Script
 Write-Host ('Connected to Tenant {0} as account {1}' -f $graphDetails.TenantId, $graphDetails.Account) -ForegroundColor Green
 Write-Host
@@ -423,13 +432,6 @@ if ($attributeErrors -gt 0) {
 Write-Host "No issues found using the selected attribute $extensionAttribute for risk assignment." -ForegroundColor Green
 Write-Host
 
-#region Feature Update Readiness
-If ($featureUpdateBuild -eq '22H2') {
-    $fu = 'NI22H2'
-}
-else {
-    $fu = 'NI23H2'
-}
 $featureUpdateCreateJSON = @"
 {
     "id": "MEMUpgradeReadinessDevice_00000000-0000-0000-0000-000000000001",
@@ -581,6 +583,21 @@ Write-Warning 'Please confirm you are happy to continue.' -WarningAction Inquire
 Write-Host
 Write-Host "Assigning the Risk attributes to $extensionAttribute..." -ForegroundColor cyan
 Write-Host
+if ($target -eq 'user') {
+    $userReportArray = $reportArray | Group-Object userPrincipalName
+
+    foreach ( $userName in $userReportArray ) {
+
+        if ($userName.count -gt 1) {
+            $userName.Group.ReadinessStatus
+        }
+        else {
+
+        }
+
+    }
+}
+
 Foreach ($object in $reportArray) {
 
     $JSON = @"
