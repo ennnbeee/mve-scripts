@@ -261,7 +261,7 @@ else {
 #region Variables
 $ProgressPreference = 'SilentlyContinue';
 $rndWait = Get-Random -Minimum 1 -Maximum 5
-$extensionAttribute = 'extensionAttribute' + $extensionAttribute
+$extensionAttributeValue = 'extensionAttribute' + $extensionAttribute
 #endregion Variables
 
 
@@ -288,19 +288,19 @@ Write-Host
 Write-Host "Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Magenta
 Write-Host
 Write-Host 'The script will carry out the following:' -ForegroundColor Green
-Write-Host "    - Capture all Windows device objects from Entra ID, these are used for assigning a Device Extension Attribute ($extensionAttribute) used in the Dynamic Groups." -ForegroundColor Yellow
+Write-Host "    - Capture all Windows device objects from Entra ID, these are used for assigning a Device Extension Attribute ($extensionAttributeValue) used in the Dynamic Groups." -ForegroundColor Yellow
 Write-Host "    - Start a Windows 11 Feature Update Readiness report for your selected build version of $featureUpdateBuild." -ForegroundColor Yellow
 Write-Host "    - Capture and process the outcome of the Windows 11 Feature Update Readiness report for build version $featureUpdateBuild" -ForegroundColor Yellow
-Write-Host "    - Based on the Risk level for the device, will assign a risk based flag to the Device Extension Attribute $extensionAttribute" -ForegroundColor Yellow
+Write-Host "    - Based on the Risk level for the device, will assign a risk based flag to the Device Extension Attribute $extensionAttributeValue" -ForegroundColor Yellow
 Write-Host
 Write-Host 'The script can be run multiple times, as the Device Extension Attributes are overwritten with each run.' -ForegroundColor Cyan
 Write-Host
 Write-Host 'Before proceding with the running of the script, please create Entra ID Dynamic Device Groups for each of the below risk levels, using the provided rule:' -ForegroundColor Green
-Write-Host "    - Low Risk: (device.$extensionAttribute -eq "LowRisk-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
-Write-Host "    - Medium Risk: (device.$extensionAttribute -eq "MediumRisk-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
-Write-Host "    - High Risk: (device.$extensionAttribute -eq "HighRisk-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
-Write-Host "    - Not Ready: (device.$extensionAttribute -eq "NotReady-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
-Write-Host "    - Unknown: (device.$extensionAttribute -eq "Unknown-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
+Write-Host "    - Low Risk: (device.$extensionAttributeValue -eq "LowRisk-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
+Write-Host "    - Medium Risk: (device.$extensionAttributeValue -eq "MediumRisk-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
+Write-Host "    - High Risk: (device.$extensionAttributeValue -eq "HighRisk-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
+Write-Host "    - Not Ready: (device.$extensionAttributeValue -eq "NotReady-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
+Write-Host "    - Unknown: (device.$extensionAttributeValue -eq "Unknown-W11-$featureUpdateBuild") and (device.deviceOSType -eq "Windows") and (device.deviceOwnership -eq "Company")" -ForegroundColor Yellow
 Write-Host
 Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
 Write-Host
@@ -309,21 +309,21 @@ Write-Host 'Getting Windows Devices and associated IDs from Entra ID...' -Foregr
 $windowsDevices = Get-EntraIDDevice | Where-Object { $_.operatingSystem -eq 'Windows' }
 Write-Host "Found $($windowsDevices.Count) Windows devices and associated IDs from Entra ID." -ForegroundColor Green
 Write-Host
-Write-Host "Checking for existing data in device attribute $extensionAttribute in Entra ID..." -ForegroundColor Cyan
+Write-Host "Checking for existing data in device attribute $extensionAttributeValue in Entra ID..." -ForegroundColor Cyan
 
 $attributeErrors = 0
 $safeAttributes = @("LowRisk-W11-$featureUpdateBuild", "MediumRisk-W11-$featureUpdateBuild", "HighRisk-W11-$featureUpdateBuild", "NotReady-W11-$featureUpdateBuild", "Unknown-W11-$featureUpdateBuild")
 foreach ($windowsDevice in $windowsDevices) {
-    $attribute = ($windowsDevice.extensionAttributes | ConvertTo-Json | ConvertFrom-Json).$extensionAttribute
+    $attribute = ($windowsDevice.extensionAttributes | ConvertTo-Json | ConvertFrom-Json).$extensionAttributeValue
     if ($attribute -notin $safeAttributes) {
         if ($null -ne $attribute) {
-            Write-Host "$($windowsDevice.displayName) already has a value of '$attribute' configured in extension attribute $extensionAttribute" -ForegroundColor Yellow
+            Write-Host "$($windowsDevice.displayName) already has a value of '$attribute' configured in extension attribute $extensionAttributeValue" -ForegroundColor Yellow
             $attributeErrors = $attributeErrors + 1
         }
     }
 }
 if ($attributeErrors -gt 0) {
-    Write-Host "Please review the devices reporting as having existing data in the selected attribute $extensionAttribute, and run the script using a different attribute selection." -ForegroundColor Red
+    Write-Host "Please review the devices reporting as having existing data in the selected attribute $extensionAttributeValue, and run the script using a different attribute selection." -ForegroundColor Red
     break
 }
 
@@ -476,18 +476,18 @@ Write-Host
 #endregion Feature Update Readiness
 
 #region Device Attributes
-Write-Host "Starting the assignment of risk base device extension attributes to $extensionAttribute" -ForegroundColor Magenta
+Write-Host "Starting the assignment of risk base device extension attributes to $extensionAttributeValue" -ForegroundColor Magenta
 Write-Host
 Write-Warning 'Please confirm you are happy to continue.' -WarningAction Inquire
 Write-Host
-Write-Host "Assigning the Risk attributes to $extensionAttribute..." -ForegroundColor cyan
+Write-Host "Assigning the Risk attributes to $extensionAttributeValue..." -ForegroundColor cyan
 Write-Host
 Foreach ($object in $reportArray) {
     if ($object.ReadinessStatus -ne '4') {
         $JSON = @"
         {
             "extensionAttributes": {
-                "$extensionAttribute": "$($object.RiskState)"
+                "$extensionAttributeValue": "$($object.RiskState)"
             }
         }
 "@
@@ -501,23 +501,23 @@ Foreach ($object in $reportArray) {
             "NotReady-W11-$featureUpdateBuild" { 'Red' }
             "Unknown-W11-$featureUpdateBuild" { 'Cyan' }
         }
-        Write-Host "$($object.DeviceName) assigned risk tag $($object.RiskState) to $extensionAttribute for Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
+        Write-Host "$($object.DeviceName) assigned risk tag $($object.RiskState) to $extensionAttributeValue for Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
     }
     Else {
         $JSON = @"
         {
             "extensionAttributes": {
-                "$extensionAttribute": ""
+                "$extensionAttributeValue": ""
             }
         }
 "@
         Start-Sleep -Seconds $rndWait
         Add-DeviceAttribute -Id $object.ObjectID -JSON $JSON
-        Write-Host "$($object.DeviceName) already updated to Windows 11 $featureUpdateBuild existing $extensionAttribute value cleared." -ForegroundColor White
+        Write-Host "$($object.DeviceName) already updated to Windows 11 $featureUpdateBuild existing $extensionAttributeValue value cleared." -ForegroundColor White
     }
 }
 Write-Host
-Write-Host "Completed the assignment of risk based device extension attributes to $extensionAttribute" -ForegroundColor Green
+Write-Host "Completed the assignment of risk based device extension attributes to $extensionAttributeValue" -ForegroundColor Green
 Write-Host
 #endregion Device Attributes
 Disconnect-MgGraph
