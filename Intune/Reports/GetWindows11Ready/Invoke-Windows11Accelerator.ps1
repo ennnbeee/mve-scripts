@@ -581,7 +581,7 @@ foreach ($featureUpdateReportEntry in $featureUpdateReportDetails) {
         'userPrincipalName'   = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $featureUpdateReportEntry[0] }).userPrincipalName)
     }
 }
-$reportArray = $reportArray | Sort-Object ReadinessStatus
+$reportArray = $reportArray | Sort-Object -Property ReadinessStatus -Descending
 
 Write-Host "Processed Windows 11 $featureUpdateBuild feature update readiness data for $($featureUpdateReport.TotalRowCount) devices." -ForegroundColor Green
 Write-Host
@@ -702,7 +702,7 @@ else {
             '5' { 'Magenta' }
         }
         if ($($device.ReadinessStatus) -eq 4) {
-            Write-Host "$($device.DeviceName) $extensionAttributeValue risk tag removed as already updated to Windows 11 $featureUpdateBuild" -ForegroundColor $riskColourur
+            Write-Host "$($device.DeviceName) $extensionAttributeValue risk tag removed as already updated to Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
         }
         else {
             Write-Host "$($device.DeviceName) assigned risk tag $($device.RiskState) to $extensionAttributeValue for Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
