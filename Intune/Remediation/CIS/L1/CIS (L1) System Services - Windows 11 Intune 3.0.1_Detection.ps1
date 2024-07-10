@@ -19,7 +19,7 @@ $cisServices = @(
     'XboxGipSvc', # Xbox Accessory Management Service
     'XblAuthManager', # Xbox Live Auth Manager
     'XblGameSave', # Xbox Live Game Save
-    'XboxNetApiSvc'     # Xbox Live Networking Service
+    'XboxNetApiSvc' # Xbox Live Networking Service
 )
 
 # Get current state on the services in the array above.

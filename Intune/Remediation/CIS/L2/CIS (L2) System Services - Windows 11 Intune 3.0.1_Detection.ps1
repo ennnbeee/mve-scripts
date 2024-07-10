@@ -22,7 +22,7 @@ $cisServices = @(
     'Wecsvc', # Windows Event Collector
     'WpnService', # Windows Push Notifications System Service
     'PushToInstall', # Windows PushToInstall Service
-    'WinRM'            # Windows Remote Management
+    'WinRM' # Windows Remote Management
 )
 
 # Get current state on the services in the array above.
@@ -46,6 +46,6 @@ if ($notDisabled -gt 0) {
     Exit 1
 }
 else {
-    Write-Output "All required services are disabled for CIS Level 2."
+    Write-Output 'All required services are disabled for CIS Level 2.'
     Exit 0
 }
