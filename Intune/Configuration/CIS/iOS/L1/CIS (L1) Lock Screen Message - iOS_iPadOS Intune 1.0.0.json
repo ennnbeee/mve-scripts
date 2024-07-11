@@ -1,1 +1,49 @@
-﻿{"@odata.context":"https://graph.microsoft.com/beta/$metadata#deviceManagement/configurationPolicies/$entity","createdDateTime":"2024-07-11T16:31:19.2525576Z","creationSource":null,"description":"","lastModifiedDateTime":"2024-07-11T16:31:19.2525576Z","name":"CIS (L1) Lock Screen Message - iOS/iPadOS Intune 1.0.0","platforms":"iOS","priorityMetaData":null,"roleScopeTagIds":["0"],"settingCount":1,"technologies":"mdm,appleRemoteManagement","id":"dd3e465e-4bd9-4413-ad2a-9aad9a50110e","templateReference":{"templateId":"","templateFamily":"none","templateDisplayName":null,"templateDisplayVersion":null},"settings":[{"id":"0","settingInstance":{"@odata.type":"#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance","settingDefinitionId":"com.apple.shareddeviceconfiguration_com.apple.shareddeviceconfiguration","settingInstanceTemplateReference":null,"groupSettingCollectionValue":[{"settingValueTemplateReference":null,"children":[{"@odata.type":"#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance","settingDefinitionId":"com.apple.shareddeviceconfiguration_lockscreenfootnote","settingInstanceTemplateReference":null,"simpleSettingValue":{"@odata.type":"#microsoft.graph.deviceManagementConfigurationStringSettingValue","settingValueTemplateReference":null,"value":"If lost, try and sell it to CEX..."}}]}]}}]}
+﻿{
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceManagement/configurationPolicies/$entity",
+    "createdDateTime": "2024-07-11T16:31:19.2525576Z",
+    "creationSource": null,
+    "description": "",
+    "lastModifiedDateTime": "2024-07-11T16:31:19.2525576Z",
+    "name": "CIS (L1) Lock Screen Message - iOS/iPadOS Intune 1.0.0",
+    "platforms": "iOS",
+    "priorityMetaData": null,
+    "roleScopeTagIds": [
+        "0"
+    ],
+    "settingCount": 1,
+    "technologies": "mdm,appleRemoteManagement",
+    "id": "dd3e465e-4bd9-4413-ad2a-9aad9a50110e",
+    "templateReference": {
+        "templateId": "",
+        "templateFamily": "none",
+        "templateDisplayName": null,
+        "templateDisplayVersion": null
+    },
+    "settings": [
+        {
+            "id": "0",
+            "settingInstance": {
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance",
+                "settingDefinitionId": "com.apple.shareddeviceconfiguration_com.apple.shareddeviceconfiguration",
+                "settingInstanceTemplateReference": null,
+                "groupSettingCollectionValue": [
+                    {
+                        "settingValueTemplateReference": null,
+                        "children": [
+                            {
+                                "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
+                                "settingDefinitionId": "com.apple.shareddeviceconfiguration_lockscreenfootnote",
+                                "settingInstanceTemplateReference": null,
+                                "simpleSettingValue": {
+                                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                                    "settingValueTemplateReference": null,
+                                    "value": "If lost, try and sell it to CEX..."
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}
