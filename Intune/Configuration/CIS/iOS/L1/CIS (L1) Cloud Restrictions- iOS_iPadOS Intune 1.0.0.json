@@ -4,7 +4,7 @@
     "creationSource": null,
     "description": "",
     "lastModifiedDateTime": "2024-07-11T15:45:38.1429053Z",
-    "name": "CIS (L1) Cloud Storage - iOS/iPadOS Intune 1.0.0",
+    "name": "CIS (L1) Cloud Restrictions - iOS/iPadOS Intune 1.0.0",
     "platforms": "iOS",
     "priorityMetaData": null,
     "roleScopeTagIds": [

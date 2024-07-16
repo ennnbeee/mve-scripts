@@ -4,7 +4,7 @@
     "creationSource": null,
     "description": "",
     "lastModifiedDateTime": "2024-07-11T16:03:09.7642039Z",
-    "name": "CIS (L1) General - iOS/iPadOS Intune 1.0.0",
+    "name": "CIS (L1) General Restrictions - iOS/iPadOS Intune 1.0.0",
     "platforms": "iOS",
     "priorityMetaData": null,
     "roleScopeTagIds": [
