@@ -3,10 +3,10 @@
 param(
 
     [Parameter(Mandatory = $true)]
-    [String]$tenantId,
+    [String]$tenantId = '437e8ffb-3030-469a-99da-e5b527908010',
 
     [Parameter(Mandatory = $false)]
-    [String[]]$scopes = 'DeviceManagementConfiguration.Read.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementApps.ReadWrite.All'
+    [String[]]$scopes = 'DeviceManagementApps.Read.All'
 
 )
 
@@ -218,7 +218,7 @@ else {
         Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
         Disconnect-MgGraph
         Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
+        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
     }
 
     $graphDetails = Get-MgContext
@@ -229,142 +229,4 @@ else {
 }
 #endregion authentication
 
-#region Script
-$sleep = '5'
-Write-Host '********************************************************************************'
-Write-Host '****    Welcome to the Endpoint Manager App Category and Assignment Tool    ****' -ForegroundColor Green
-Write-Host '****    This Script will add new app categories and assign them             ****' -ForegroundColor Cyan
-Write-Host '********************************************************************************'
-Write-Host
-Write-Host ' Please Choose one of the options below: ' -ForegroundColor Yellow
-Write-Host
-Write-Host ' (1) Upload a CSV of new App Categories...' -ForegroundColor Green
-Write-Host
-Write-Host ' (2) Upload a CSV of new App Categories and assign App Categories to Apps...' -ForegroundColor Green
-Write-Host
-Write-Host ' (3) Assign App Categories to Apps...' -ForegroundColor Green
-Write-Host
-Write-Host ' (4) Remove Assigned App Categories from Apps...' -ForegroundColor Green
-Write-Host
-Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
-Write-Host
-$Choice_Number = ''
-$Choice_Number = Read-Host -Prompt 'Based on which option you want to run, please type 1, 2 or E to exit the script, then hit enter '
-while ( !($Choice_Number -eq '1' -or $Choice_Number -eq '2' -or $Choice_Number -eq '3' -or $Choice_Number -eq '4' -or $Choice_Number -eq 'E')) {
-    $Choice_Number = Read-Host -Prompt 'Invalid Option, Based on which option you want to run, please type 1, 2, 3, 4 or E to exit the test, then click enter '
-}
-if ($Choice_Number -eq 'E') {
-    Break
-}
-if ($Choice_Number -eq '1') {
-    $Setting = 'Upload'
-}
-if ($Choice_Number -eq '2') {
-    $Setting = 'Upload/Assign'
-}
-if ($Choice_Number -eq '3') {
-    $Setting = 'Assign'
-}
-if ($Choice_Number -eq '4') {
-    $Setting = 'Remove'
-}
-if ($Setting -like '*Upload*') {
-    #region Add App Categories
-    $CSVPath = Read-Host 'Please provide the path to the CSV file containing a list of App Categories e.g. C:\temp\appcategories.csv'
-    if (!(Test-Path "$CSVPath")) {
-        Write-Host "Import Path for CSV file doesn't exist" -ForegroundColor Red
-        Write-Host "Script can't continue" -ForegroundColor Red
-        Write-Host
-        break
-    }
-    else {
-        $AppCategories = Import-Csv -Path $CSVPath
-    }
-    $CurrentAppCategories = (Get-AppCategory).displayName
-    foreach ($AppCategory in $AppCategories) {
-        if ($AppCategory.Name -in $CurrentAppCategories) {
-            Write-Host 'App Category '$AppCategory.Name' already exists...' -ForegroundColor Yellow
-            Write-Host
-        }
-        else {
-            Write-Host 'App Category will be created...' -ForegroundColor Yellow
-            Write-Host
-            try {
-                Add-AppCategory -Name $AppCategory.Name | Out-Null
-                Write-Host 'App Category '$AppCategory.Name' created...' -ForegroundColor Green
-                Write-Host
-            }
-            catch {
-                Write-Host 'App Category '$AppCategory.Name' not created...' -ForegroundColor Red
-                Write-Host
-            }
-        }
-    }
-    #endregion
-}
-if ($Setting -like '*Assign*') {
-    #region Assign App Categories
-    Write-Host 'When prompted, wait for all Mobile Apps to load, then select the App or Apps you want to assign a Category. Use The ENTER Key or Mouse \ OK Button.' -ForegroundColor Yellow
-    Write-Host
-    Start-Sleep -Seconds $sleep
-    $MobileApps = @(Get-MobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and (!($_.'@odata.type').Contains('android')) } | Select-Object '@odata.type', displayName, publisher, id | Out-GridView -PassThru -Title 'Select Mobile Apps...')
-    Write-Host 'Wait for all App Categories to load, then select the Category or Categories you want to assign to an Application. Use The ENTER Key or Mouse \ OK Button.' -ForegroundColor Yellow
-    Write-Host
-    Start-Sleep -Seconds $sleep
-    $AddAppCategories = @(Get-AppCategory | Select-Object displayName, id | Out-GridView -PassThru -Title 'Select Apps Categories...')
-    Write-Host 'Starting assignment of Categories to Mobile Apps' -ForegroundColor Yellow
-    Write-Host
-    Write-Warning 'Please confirm you are happy to continue assigning categories to applications' -WarningAction Inquire
-    foreach ($MobileApp in $MobileApps) {
-        $AssignedAppCategories = Get-MobileAppsCategory -Id $MobileApp.id
-        foreach ($AddAppCategory in $AddAppCategories) {
-            if ($AddAppCategory.displayName -in $AssignedAppCategories.displayName) {
-                Write-Host ''$AddAppCategory.displayName' category already assigned to '$MobileApp.displayName'' -ForegroundColor Yellow
-                Write-Host
-            }
-            else {
-                Write-Host 'Adding '$AddAppCategory.displayName' category to '$MobileApp.displayName'...' -ForegroundColor Yellow
-                try {
-                    Add-MobileAppCategory -Id $MobileApp.id -CategoryId $AddAppCategory.id
-                    Write-Host 'Added '$AddAppCategory.displayName' category to '$MobileApp.displayName'...' -ForegroundColor Green
-                    Write-Host
-                }
-                catch {
-                    Write-Host 'Unable to add '$AddAppCategory.displayName' category to '$MobileApp.displayName'...' -ForegroundColor Red
-                    Write-Host
-                }
-            }
-        }
-    }
-    #endregion
-}
-if ($setting -eq 'Remove') {
-    Write-Host 'When prompted, wait for all Mobile Apps to load, then select the App or Apps you want to remove categories from. Use The ENTER Key or Mouse \ OK Button.' -ForegroundColor Yellow
-    Write-Host
-    Start-Sleep -Seconds $sleep
-    $MobileApps = @(Get-MobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and (!($_.'@odata.type').Contains('android')) } | Select-Object '@odata.type', displayName, publisher, id | Out-GridView -PassThru -Title 'Select Mobile Apps...')
-    foreach ($MobileApp in $MobileApps) {
-        $AssignedAppCategories = Get-MobileAppsCategory -Id $MobileApp.id
-        If (!$AssignedAppCategories) {
-            Write-Host 'App '$MobileApp.displayName' has no assigned App Categories...' -ForegroundColor Yellow
-            Write-Host
-        }
-        Else {
-            Write-Host 'The following App Categories for App '$MobileApp.displayName' will be removed...' -ForegroundColor Yellow
-            $AssignedAppCategories.displayName
-            Write-Host
-            Start-Sleep -Seconds $sleep
-            foreach ($AssignedAppCategory in $AssignedAppCategories) {
-                Try {
-                    Remove-MobileAppCategory -Id $MobileApp.id -CategoryId $AssignedAppCategory.id
-                    Write-Host 'App Category '$AssignedAppCategory.displayName' removed from App '$MobileApp.displayName'' -ForegroundColor Green
-                    Write-Host
-                }
-                Catch {
-                    Write-Host 'Unable to remove App Category '$AssignedAppCategory.displayName' from App '$MobileApp.displayName'' -ForegroundColor Red
-                    Write-Host
-                }
-            }
-        }
-    }
-}
+Get-MobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and (!($_.'@odata.type').Contains('android')) }
