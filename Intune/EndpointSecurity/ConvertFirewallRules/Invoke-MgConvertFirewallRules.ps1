@@ -27,7 +27,7 @@
   None. Invoke-MgConvertFirewallRules.ps1 doesn't generate any output.
 
   .EXAMPLE
-  PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -policyName 'CO_FW_Rules' -oldFirewallPolicies Legacy_FW_Rule1,Legacy_FW_Rule2,Legacy_FW_Rule3
+  PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -policyName 'CO_FW_Rules' -oldFirewallPolicies 'Legacy_FW_Rule1','Legacy_FW_Rule2','Legacy_FW_Rule3'
 
 #>
 
