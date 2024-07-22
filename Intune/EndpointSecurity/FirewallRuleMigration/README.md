@@ -8,7 +8,7 @@ Updated version of the [Microsoft tool](https://learn.microsoft.com/en-us/mem/in
 - Force using Endpoint Security templates for firewall rule policies.
 - Changed the Authentication approach to Graph to use `deviceCode`.
 - Disabled sending of telemetry on success and failure.
-- Fixed an issue when checking for profile name matching when there are no exiting firewall rule policies.
+- Fixed an issue when checking for profile name matching when there are no existing firewall rule policies.
 
 ## Script Use
 
