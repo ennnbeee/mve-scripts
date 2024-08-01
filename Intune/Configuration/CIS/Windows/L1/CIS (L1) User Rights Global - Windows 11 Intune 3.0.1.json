@@ -30,7 +30,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
@@ -65,7 +65,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
@@ -180,7 +180,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
@@ -210,7 +210,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
@@ -300,7 +300,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
@@ -400,7 +400,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
@@ -460,7 +460,7 @@
                     {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                         "settingValueTemplateReference": null,
-                        "value": "(<![CDATA[]]>)"
+                        "value": ""
                     }
                 ]
             }
