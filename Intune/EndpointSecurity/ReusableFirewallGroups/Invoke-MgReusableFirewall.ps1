@@ -175,12 +175,12 @@ Write-Host
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
 
-#Removes the onmicrosoft crap
-$tenantName = $tenantName.Split('.')[0]
-
 foreach ($serviceArea in $serviceAreas) {
 
     if ($tenantName) {
+        #Removes the onmicrosoft crap
+        $tenantName = $tenantName.Split('.')[0]
+
         $webService = ("https://endpoints.office.com/endpoints/$instance`?`TenantName=$tenantName`&`ServiceAreas=$serviceArea`&`clientrequestid=" + ([GUID]::NewGuid()).Guid)
     }
     else {
@@ -355,7 +355,7 @@ foreach ($serviceArea in $serviceAreas) {
     }
     else {
         try {
-            $endpointSets = (Invoke-MgGraphRequest -Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
+            $endpointSets = (Invoke-RestMethod -Uri $webService) | Where-Object { $_.serviceArea -eq $serviceArea }
             Write-Host "Found $($endpointSets.Count) Network Endpoints for $serviceArea Service" -ForegroundColor Green
             Write-Host
 
