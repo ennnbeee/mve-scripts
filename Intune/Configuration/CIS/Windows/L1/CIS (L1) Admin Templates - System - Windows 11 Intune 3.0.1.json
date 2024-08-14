@@ -300,7 +300,7 @@
                 "settingInstanceTemplateReference": null,
                 "choiceSettingValue": {
                     "settingValueTemplateReference": null,
-                    "value": "device_vendor_msft_policy_config_credentialproviders_allowpinlogon_1",
+                    "value": "device_vendor_msft_policy_config_credentialproviders_allowpinlogon_0",
                     "children": []
                 }
             }
