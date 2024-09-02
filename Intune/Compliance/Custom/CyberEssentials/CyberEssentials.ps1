@@ -1,28 +1,26 @@
 # Variables
-$avClient = '' # Third-party Antivirus Client Name
-$fwClient = '' # Third-party Firewall Client Name
+$avClient = 'AVG Antivirus' # Third-party Antivirus Client Name
+$fwClient = 'ZoneAlarm NextGen Firewall' # Third-party Firewall Client Name
 $cyberEssentials = New-Object -TypeName PSObject
 
 # Guest Account
 $guestAccount = Get-WmiObject Win32_UserAccount | Where-Object SID -Like '*501' | Select-Object Domain, Name, Disabled
-$guestAccountStatus = switch ($guestAccount.Disabled) {
-    'True' { 'True' }
-    'False' { 'False' }
-}
+[string]$guestAccountStatus = $guestAccount.Disabled
+
 $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Built-in Guest account disabled' -Value $guestAccountStatus
 
 # Autoplay
 Try {
     $autorunState = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' -Name 'NoDriveTypeAutoRun'
     if ($autorunState -eq 255) {
-        $autorunStatus = 'True'
+        [string]$autorunStatus = 'True'
     }
     else {
-        $autorunStatus = 'False'
+        [string]$autorunStatus = 'False'
     }
 }
 Catch {
-    $autorunStatus = 'False'
+    [string]$autorunStatus = 'False'
 }
 
 $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Autoplay disabled' -Value $autorunStatus
@@ -35,7 +33,7 @@ if ($avClient) {
         $avRealTimeProtection = $avProductState.Substring(2, 2)
         $avDefinitions = $avProductState.Substring(4, 2)
 
-        $avRealTimeProtectionStatus = switch ($avRealTimeProtection) {
+        [string]$avRealTimeProtectionStatus = switch ($avRealTimeProtection) {
             '00' { 'False' }
             '01' { 'Expired' }
             '10' { 'True' }
@@ -43,7 +41,7 @@ if ($avClient) {
             default { 'Unknown' }
         }
 
-        $avDefinitionStatus = switch ($avDefinitions) {
+        [string]$avDefinitionStatus = switch ($avDefinitions) {
             '00' { 'True' }
             '10' { 'False' }
             default { 'Unknown' }
@@ -62,14 +60,14 @@ else {
     # Defender
     $defenderStatus = Get-MpComputerStatus
 
-    $defenderAM = $defenderStatus.AMServiceEnabled
-    $defenderAS = $defenderStatus.AntispywareEnabled
-    $defenderAV = $defenderStatus.AntivirusEnabled
+    [string]$defenderAM = $defenderStatus.AMServiceEnabled
+    [string]$defenderAS = $defenderStatus.AntispywareEnabled
+    [string]$defenderAV = $defenderStatus.AntivirusEnabled
     if ($defenderStatus.AntivirusSignatureAge -le 1) {
-        $defenderSig = 'True'
+        [string]$defenderSig = 'True'
     }
     else {
-        $defenderSig = 'False'
+        [string]$defenderSig = 'False'
     }
 
     $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Defender antimalware service enabled' -Value $defenderAM
@@ -87,7 +85,7 @@ if ($fwClient) {
         [string]$fwProductState = [System.Convert]::ToString($fwProduct.ProductState, 16).padleft(6, '0')
         $fwProtection = $fwProductState.substring(2, 2)
 
-        $fwProtectionStatus = switch ($fwProtection) {
+        [string]$fwProtectionStatus = switch ($fwProtection) {
             '00' { 'False' }
             '10' { 'True' }
             default { 'Unknown' }
@@ -104,7 +102,7 @@ else {
     $fwProfiles = Get-NetFirewallProfile
     foreach ($fwProfile in $fwProfiles) {
 
-        $fwStatus = $fwProfile.Enabled
+        [string]$fwStatus = $fwProfile.Enabled
         $cyberEssentials | Add-Member -MemberType NoteProperty -Name "Windows Defender $($fwProfile.name) firewall enabled" -Value $fwStatus
 
     }
@@ -124,11 +122,12 @@ $updateTime = Get-Item @(
 
 $todayTime = Get-Date
 If ((New-TimeSpan -Start $updateTime -End $todayTime).Days -le 31) {
-    $updateAge = 'True'
+    [string]$updateAge = 'True'
 }
 else {
-    $updateAge = 'False'
+    [string]$updateAge = 'False'
 }
+
 $cyberEssentials | Add-Member -MemberType NoteProperty -Name 'Windows operating system up-to-date' -Value $updateAge
 
 
