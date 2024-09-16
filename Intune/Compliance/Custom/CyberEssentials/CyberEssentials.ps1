@@ -121,7 +121,7 @@ $updateTime = Get-Item @(
 ) | Measure-Object -Maximum LastWriteTimeUtc | Select-Object -ExpandProperty Maximum
 
 $todayTime = Get-Date
-If ((New-TimeSpan -Start $updateTime -End $todayTime).Days -le 31) {
+If ((New-TimeSpan -Start $updateTime -End $todayTime).Days -le 35) {
     [string]$updateAge = 'True'
 }
 else {

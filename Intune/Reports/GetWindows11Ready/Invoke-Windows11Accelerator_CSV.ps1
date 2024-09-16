@@ -103,11 +103,21 @@ Function New-ReportFeatureUpdateReadiness() {
     param
     (
         [parameter(Mandatory = $true)]
-        $JSON
+        $JSON,
+
+        [Parameter()]
+        [switch]$csv
     )
 
     $graphApiVersion = 'Beta'
-    $Resource = 'deviceManagement/reports/cachedReportConfigurations'
+
+    if ($csv.IsPresent) {
+
+        $Resource = 'deviceManagement/reports/exportJobs'
+    }
+    else {
+        $Resource = 'deviceManagement/reports/cachedReportConfigurations'
+    }
 
     try {
         Test-Json -Json $JSON
@@ -129,13 +139,19 @@ Function Get-ReportFeatureUpdateReadiness() {
         $Id,
 
         [parameter(Mandatory = $false)]
-        $JSON
+        $JSON,
+
+        [Parameter()]
+        [switch]$csv
 
     )
 
     $graphApiVersion = 'Beta'
 
-    if ($id) {
+    if ($csv.IsPresent) {
+        $Resource = "deviceManagement/reports/exportJobs('$Id')"
+    }
+    elseif ($id) {
         $Resource = "deviceManagement/reports/cachedReportConfigurations('$Id')"
     }
     elseif ($JSON) {
@@ -242,7 +258,6 @@ Function Get-EntraIDObject() {
         break
     }
 }
-
 Function Get-ManagedDevices() {
 
     [cmdletbinding()]
@@ -281,6 +296,9 @@ Function Get-ManagedDevices() {
 }
 
 #endregion Functions
+
+#region testing
+#endregion testing
 
 #region authentication
 if (Get-MgContext) {
@@ -341,34 +359,12 @@ $fu = Switch ($featureUpdateBuild) {
     '23H2' { 'NI23H2' }
     '24H2' { 'NI24H2' }
 }
-$featureUpdateCreateJSON = @"
-{
-    "id": "MEMUpgradeReadinessDevice_00000000-0000-0000-0000-000000000001",
-    "filter": "(TargetOS eq '$fu') and (DeviceScopesTag eq '00000')",
-    "orderBy": [],
-    "select": [
-        "DeviceName",
-        "DeviceManufacturer",
-        "DeviceModel",
-        "OSVersion",
-        "ReadinessStatus",
-        "SystemRequirements",
-        "AppIssuesCount",
-        "DriverIssuesCount",
-        "AppOtherIssuesCount"
-    ],
-    "metadata": "TargetOS=>filterPicker=V2luZG93cyUyMDExJTIwLSUyMHZlcnNpb24lMjAyMkgy,DeviceScopesTag=>filterPicker=RGVmYXVsdA=="
-}
-"@
 
-$featureUpdateGetJSON = @'
+$featureUpdateCreateCSVJSON = @"
 {
-    "Id": "MEMUpgradeReadinessDevice_00000000-0000-0000-0000-000000000001",
-    "Skip": 0,
-    "Top": 50,
-    "Search": "",
-    "OrderBy": [],
-    "Select": [
+    "reportName": "MEMUpgradeReadinessDevice",
+    "filter": "(TargetOS eq '$fu') and (DeviceScopesTag eq '00000')",
+    "select": [
         "DeviceName",
         "DeviceManufacturer",
         "DeviceModel",
@@ -382,9 +378,11 @@ $featureUpdateGetJSON = @'
         "AadDeviceId",
         "Ownership"
     ],
-    "filter": ""
+    "format": "csv",
+    "snapshotId": "MEMUpgradeReadinessDevice_00000000-0000-0000-0000-000000000001"
 }
-'@
+"@
+
 #endregion Variables
 
 #region Intro
@@ -454,7 +452,6 @@ $entraDevices = Get-EntraIDObject -object Device | Where-Object { $_.operatingSy
 Write-Host "Found $($entraDevices.Count) Windows devices and associated IDs from Entra ID." -ForegroundColor Green
 Write-Host
 Write-Host "Checking for existing data in attribute $extensionAttributeValue in Entra ID..." -ForegroundColor Cyan
-
 $attributeErrors = 0
 $safeAttributes = @("LowRisk-W11-$featureUpdateBuild", "MediumRisk-W11-$featureUpdateBuild", "HighRisk-W11-$featureUpdateBuild", "NotReady-W11-$featureUpdateBuild", "Unknown-W11-$featureUpdateBuild")
 
@@ -491,70 +488,31 @@ Write-Host
 Write-Host "Starting the Feature Update Readiness Report for Windows 11 $featureUpdateBuild..." -ForegroundColor Magenta
 Write-Host
 
-$startFeatureUpdateReport = New-ReportFeatureUpdateReadiness -JSON $featureUpdateCreateJSON
-While ((Get-ReportFeatureUpdateReadiness -Id $startFeatureUpdateReport.id).status -ne 'completed') {
+$startFeatureUpdateReport = New-ReportFeatureUpdateReadiness -JSON $featureUpdateCreateCSVJSON -csv
+While ((Get-ReportFeatureUpdateReadiness -Id $startFeatureUpdateReport.id -csv).status -ne 'completed') {
     Write-Host 'Waiting for the Feature Update report to finish processing...' -ForegroundColor Cyan
     Start-Sleep -Seconds $rndWait
 
 }
+
 Write-Host 'Feature Update Readiness report completed processing.' -ForegroundColor Green
 Write-Host
 Write-Host 'Getting Feature Update Report data...' -ForegroundColor Magenta
 Write-Host
+$csvURL = (Get-ReportFeatureUpdateReadiness -Id $startFeatureUpdateReport.id -csv).url
 
-$featureUpdateReport = Get-ReportFeatureUpdateReadiness -JSON $featureUpdateGetJSON
+$csvHeader = @{Accept = '*/*'; 'accept-encoding' = 'gzip, deflate, br, zstd' }
+Add-Type -AssemblyName System.IO.Compression
+$csvReportStream = Invoke-WebRequest -Uri $csvURL -Method Get -Headers $csvHeader -UseBasicParsing -ErrorAction Stop -Verbose
+$csvReportZip = [System.IO.Compression.ZipArchive]::new([System.IO.MemoryStream]::new($csvReportStream.Content))
+$csvReportDevices = [System.IO.StreamReader]::new($csvReportZip.GetEntry($csvReportZip.Entries[0]).open()).ReadToEnd() | ConvertFrom-Csv
 
-Write-Host "Found Feature Update Report Details for $($featureUpdateReport.TotalRowCount) devices." -ForegroundColor Green
-Write-Host
-Write-Host "Processing data for 0 out of $($featureUpdateReport.TotalRowCount) devices..." -ForegroundColor Cyan
-$featureUpdateReportDetails = @()
-$featureUpdateReportDetails += $featureUpdateReport.Values
-
-$i = 0
-if ($($featureUpdateReport.TotalRowCount) -gt 50) {
-    while ($i -le $($featureUpdateReport.TotalRowCount)) {
-        $i = $i + 50
-        $getNextJSON = @"
-    {
-        "Id": "MEMUpgradeReadinessDevice_00000000-0000-0000-0000-000000000001",
-        "Skip": $i,
-        "Top": 50,
-        "Search": "",
-        "OrderBy": [],
-        "Select": [
-            "DeviceName",
-            "DeviceManufacturer",
-            "DeviceModel",
-            "OSVersion",
-            "ReadinessStatus",
-            "SystemRequirements",
-            "AppIssuesCount",
-            "DriverIssuesCount",
-            "AppOtherIssuesCount",
-            "DeviceId",
-            "AadDeviceId",
-            "Ownership"
-        ],
-        "filter": ""
-    }
-"@
-        # Sleep to stop throttling issues
-        Start-Sleep -Seconds $rndWait
-        $featureUpdateReportNext = Get-ReportFeatureUpdateReadiness -JSON $getNextJSON
-        Write-Host "Processing data for $i out of $($featureUpdateReport.TotalRowCount) devices..." -ForegroundColor Cyan
-        $featureUpdateReportDetails += $featureUpdateReportNext.Values
-    }
-}
-Write-Host "Processed data for $($featureUpdateReport.TotalRowCount) devices..." -ForegroundColor Green
-Write-Host
-
-Write-Host "Processing Windows 11 $featureUpdateBuild feature update readiness data for $($featureUpdateReport.TotalRowCount) devices..." -ForegroundColor Cyan
-Write-Host
+Write-Host "Found Feature Update Report Details for $($csvReport.Count) devices." -ForegroundColor Green
 
 $reportArray = @()
-foreach ($featureUpdateReportEntry in $featureUpdateReportDetails) {
+foreach ($csvReportDevice in $csvReportDevices) {
 
-    $riskState = switch ($featureUpdateReportEntry[10]) {
+    $riskState = switch ($csvReportDevice.ReadinessStatus) {
         '0' { "LowRisk-W11-$featureUpdateBuild" }
         '1' { "MediumRisk-W11-$featureUpdateBuild" }
         '2' { "HighRisk-W11-$featureUpdateBuild" }
@@ -563,22 +521,22 @@ foreach ($featureUpdateReportEntry in $featureUpdateReportDetails) {
     }
 
     $reportArray += [PSCustomObject]@{
-        'AadDeviceId'         = $featureUpdateReportEntry[0]
-        'AppIssuesCount'      = $featureUpdateReportEntry[1]
-        'AppOtherIssuesCount' = $featureUpdateReportEntry[2]
-        'DeviceId'            = $featureUpdateReportEntry[3]
-        'DeviceManufacturer'  = $featureUpdateReportEntry[4]
-        'DeviceModel'         = $featureUpdateReportEntry[5]
-        'DeviceName'          = $featureUpdateReportEntry[6]
-        'DriverIssuesCount'   = $featureUpdateReportEntry[7]
-        'OSVersion'           = $featureUpdateReportEntry[8]
-        'Ownership'           = $featureUpdateReportEntry[9]
-        'ReadinessStatus'     = $featureUpdateReportEntry[10]
-        'SystemRequirements'  = $featureUpdateReportEntry[11]
+        'AadDeviceId'         = $csvReportDevice.AadDeviceId
+        'AppIssuesCount'      = $csvReportDevice.AppIssuesCount
+        'AppOtherIssuesCount' = $csvReportDevice.AppOtherIssuesCount
+        'DeviceId'            = $csvReportDevice.DeviceId
+        'DeviceManufacturer'  = $csvReportDevice.DeviceManufacturer
+        'DeviceModel'         = $csvReportDevice.DeviceModel
+        'DeviceName'          = $csvReportDevice.DeviceName
+        'DriverIssuesCount'   = $csvReportDevice.DriverIssuesCount
+        'OSVersion'           = $csvReportDevice.OSVersion
+        'Ownership'           = $csvReportDevice.Ownership
+        'ReadinessStatus'     = $csvReportDevice.ReadinessStatus
+        'SystemRequirements'  = $csvReportDevice.SystemRequirements
         'RiskState'           = $riskState
-        'deviceObjectID'      = $(($entraDevices | Where-Object { $_.deviceid -eq $featureUpdateReportEntry[0] }).id)
-        'userObjectID'        = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $featureUpdateReportEntry[0] }).userId)
-        'userPrincipalName'   = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $featureUpdateReportEntry[0] }).userPrincipalName)
+        'deviceObjectID'      = $(($entraDevices | Where-Object { $_.deviceid -eq $($csvReportDevice.AadDeviceId) }).id)
+        'userObjectID'        = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userId)
+        'userPrincipalName'   = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userPrincipalName)
     }
 }
 $reportArray = $reportArray | Sort-Object -Property ReadinessStatus -Descending

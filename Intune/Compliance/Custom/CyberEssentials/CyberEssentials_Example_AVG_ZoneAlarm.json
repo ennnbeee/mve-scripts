@@ -23,7 +23,7 @@
             "RemediationStrings": [
                 {
                     "Language": "en_US",
-                    "Title": "Autoplay for all drives in enabled",
+                    "Title": "Autoplay for all drives is enabled",
                     "Description": "To comply with Cyber Essentials Autoplay for all devices must be disabled."
                 }
             ]

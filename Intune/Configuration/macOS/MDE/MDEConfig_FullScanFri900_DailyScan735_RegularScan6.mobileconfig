@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>PayloadUUID</key>
+        <string>0D71A384-38AE-4DEF-94DC-F962B2C9CF53</string>
+        <key>PayloadType</key>
+        <string>Configuration</string>
+        <key>PayloadOrganization</key>
+        <string>MEM v ENNBEE</string>
+        <key>PayloadIdentifier</key>
+        <string>0D71A384-38AE-4DEF-94DC-F962B2C9CF53</string>
+        <key>PayloadDisplayName</key>
+        <string>Microsoft Defender for Endpoint settings</string>
+        <key>PayloadDescription</key>
+        <string>Microsoft Defender for Endpoint configuration settings</string>
+        <key>PayloadVersion</key>
+        <integer>1</integer>
+        <key>PayloadEnabled</key>
+        <true/>
+        <key>PayloadRemovalDisallowed</key>
+        <false/>
+        <key>PayloadScope</key>
+        <string>System</string>
+        <key>PayloadContent</key>
+        <array>
+            <dict>
+                <key>PayloadUUID</key>
+                <string>5D1E1E27-851F-4EEC-ABE7-D06321A332AC</string>
+                <key>PayloadType</key>
+                <string>com.microsoft.wdav</string>
+                <key>PayloadOrganization</key>
+                <string>MEM v ENNBEE</string>
+                <key>PayloadIdentifier</key>
+                <string>5D1E1E27-851F-4EEC-ABE7-D06321A332AC</string>
+                <key>PayloadDisplayName</key>
+                <string>Microsoft Defender for Endpoint configuration settings</string>
+                <key>PayloadDescription</key>
+                <string/>
+                <key>PayloadVersion</key>
+                <integer>1</integer>
+                <key>PayloadEnabled</key>
+                <true/>
+                <key>features</key>
+                <dict>
+                    <key>scheduledScan</key>
+                    <string>enabled</string>
+                </dict>
+                <key>scheduledScan</key>
+                <dict>
+                    <key>ignoreExclusions</key>
+                    <false/>
+                    <key>lowPriorityScheduledScan</key>
+                    <true/>
+                    <key>dailyConfiguration</key>
+                    <dict>
+                        <key>timeOfDay</key>
+                        <integer>735</integer>
+                        <key>interval</key>
+                        <string>0</string>
+                    </dict>
+                    <key>weeklyConfiguration</key>
+                    <dict>
+                        <key>dayOfWeek</key>
+                        <integer>6</integer>
+                        <key>timeOfDay</key>
+                        <integer>900</integer>
+                        <key>scanType</key>
+                        <string>full</string>
+                    </dict>
+                </dict>
+            </dict>
+        </array>
+    </dict>
+</plist>
