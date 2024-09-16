@@ -56,20 +56,22 @@ param(
     [ValidateRange(0, 60)]
     [int]$dailyScanMinute = '30',
 
-    [Parameter(Mandatory = $true)]
-    [boolean]$regularScan,
+    [Parameter(Mandatory = $false)]
+    [ValidateRange(0, 24)]
+    [Int]$regularScanInterval = '0',
 
     [Parameter(Mandatory = $false)]
-    [ValidateRange(1, 24)]
-    [Int]$regularScanInterval,
+    [boolean]$checkForDefinitionsUpdate = $true,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet('true', 'false')]
-    [String]$ignoreExclusions = 'false',
+    [boolean]$ignoreExclusions = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet('true', 'false')]
-    [String]$lowPriorityScheduledScan = 'true'
+    [boolean]$lowPriorityScheduledScan = $true,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateRange(0, 23)]
+    [Int]$randomizeScanStartTime = '0'
 
 )
 
@@ -78,13 +80,17 @@ $fullScan = $true
 $fullScanDay = 'Fri'
 [int]$fullScanHour = '15'
 [int]$fullScanMinute = '00'
+
 $dailyScan = $true
 [int]$dailyScanHour = '12'
 [int]$dailyScanMinute = '15'
-$regularScan = $false
+
 $regularScanInterval = '6'
-$ignoreExclusions = 'false'
-$lowPriorityScheduledScan = 'true'
+
+$checkForDefinitionsUpdate = $true
+$ignoreExclusions = $false
+$lowPriorityScheduledScan = $true
+$randomizeScanStartTime = '1'
 #endregion testing
 
 #region validation
@@ -152,22 +158,13 @@ $configSettingsStart = @"
                     <$ignoreExclusions/>
                     <key>lowPriorityScheduledScan</key>
                     <$lowPriorityScheduledScan/>
+                    <key>randomizeScanStartTime</key>
+                    <integer>$randomizeScanStartTime</integer>
+                    <key>checkForDefinitionsUpdate</key>
+                    <$checkForDefinitionsUpdate/>
 
 "@
 
-if ($fullScan -eq $false) {
-    $fullScanDay = 'Never'
-    $configSettingsFull = @'
-                    <key>weeklyConfiguration</key>
-                    <dict>
-                        <key>dayOfWeek</key>
-                        <integer>8</integer>
-                        <key>scanType</key>
-                        <string>full</string>
-                    </dict>
-
-'@
-}
 if ($fullScan -eq $true) {
     if ([string]::IsNullOrEmpty($fullScanDay) -or [string]::IsNullOrEmpty($fullScanHour) -or [string]::IsNullOrEmpty($fullScanMinute)) {
         Write-Host 'Defender Full Scan configured but missing scan day or hour or minute.' -ForegroundColor Red
@@ -200,7 +197,20 @@ if ($fullScan -eq $true) {
 "@
     }
 }
-if ($dailyScan -eq $true -and $regularScan -eq $false) {
+else {
+    $fullScanDay = 'Never'
+    $configSettingsFull = @'
+                    <key>weeklyConfiguration</key>
+                    <dict>
+                        <key>dayOfWeek</key>
+                        <integer>8</integer>
+                        <key>scanType</key>
+                        <string>full</string>
+                    </dict>
+
+'@
+}
+if ($dailyScan -eq $true) {
     $regularScanInterval = 'Never'
     if ([string]::IsNullOrEmpty($dailyScanHour) -or [string]::IsNullOrEmpty($dailyScanMinute)) {
         Write-Host 'Defender Daily Scan configured but missing scan hour or minute.' -ForegroundColor Red
@@ -221,32 +231,8 @@ if ($dailyScan -eq $true -and $regularScan -eq $false) {
 "@
     }
 }
-elseif ($dailyScan -eq $true -and $regularScan -eq $true) {
-    if ([string]::IsNullOrEmpty($dailyScanHour) -or [string]::IsNullOrEmpty($dailyScanMinute)) {
-        Write-Host 'Defender Daily Scan configured but missing scan hour or minute.' -ForegroundColor Red
-        Break
-    }
-    if ([string]::IsNullOrEmpty($regularScanInterval)) {
-        Write-Host 'Defender Regular Scan configured but missing scan interval.' -ForegroundColor Red
-        Break
-    }
-    $configSettingsQuick = @"
-        <key>dailyConfiguration</key>
-        <dict>
-            <key>timeOfDay</key>
-            <integer>$quickScanTimeOfDay</integer>
-            <key>interval</key>
-            <string>$regularScanInterval</string>
-        </dict>
+else {
 
-"@
-}
-elseif ($dailyScan -eq $false -and $regularScan -eq $true) {
-    $dailyScanTimeOfDay = 'Never'
-    if ([string]::IsNullOrEmpty($regularScanInterval)) {
-        Write-Host 'Defender Regular Scan configured but missing scan interval.' -ForegroundColor Red
-        Break
-    }
     $configSettingsQuick = @"
         <key>dailyConfiguration</key>
         <dict>
@@ -272,6 +258,7 @@ $configEnd = @'
 
 
 Try {
+    write-host "https://github.com/microsoft/mdatp-xplat/blob/master/macos/schema/schema.json"
     $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEnd
     $configContent = $configStart + $configSettings + $configEnd
     $configfile = "MDEConfig_FullScan$fullScanDay$fullScanTimeOfDay`_DailyScan$dailyScanTimeOfDay`_RegularScan$regularScanInterval.mobileconfig"
