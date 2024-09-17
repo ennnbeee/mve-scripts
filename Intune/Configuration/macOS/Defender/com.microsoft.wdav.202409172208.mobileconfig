@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>PayloadUUID</key>
+    <string>A34C52A2-7E87-443E-A11F-7382AF3A42D4</string>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadOrganization</key>
+    <string>MEM v ENNBEE</string>
+    <key>PayloadIdentifier</key>
+    <string>A34C52A2-7E87-443E-A11F-7382AF3A42D4</string>
+    <key>PayloadDisplayName</key>
+    <string>Microsoft Defender for Endpoint settings</string>
+    <key>PayloadDescription</key>
+    <string>Microsoft Defender for Endpoint configuration settings</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+    <key>PayloadEnabled</key>
+    <true />
+    <key>PayloadRemovalDisallowed</key>
+    <false />
+    <key>PayloadScope</key>
+    <string>System</string>
+    <key>PayloadContent</key>
+    <array>
+      <dict>
+        <key>PayloadUUID</key>
+        <string>CAB31565-9A2E-4858-8E69-8B8257EA3CFF</string>
+        <key>PayloadType</key>
+        <string>com.microsoft.wdav</string>
+        <key>PayloadOrganization</key>
+        <string>MEM v ENNBEE</string>
+        <key>PayloadIdentifier</key>
+        <string>CAB31565-9A2E-4858-8E69-8B8257EA3CFF</string>
+        <key>PayloadDisplayName</key>
+        <string>Microsoft Defender for Endpoint configuration settings</string>
+        <key>PayloadDescription</key>
+        <string />
+        <key>PayloadVersion</key>
+        <integer>1</integer>
+        <key>PayloadEnabled</key>
+        <true />
+        <key>features</key>
+        <dict>
+          <key>scheduledScan</key>
+          <string>enabled</string>
+        </dict>
+        <key>scheduledScan</key>
+        <dict>
+          <key>ignoreExclusions</key>
+          <false />
+          <key>lowPriorityScheduledScan</key>
+          <true />
+          <key>randomizeScanStartTime</key>
+          <integer>0</integer>
+          <key>checkForDefinitionsUpdate</key>
+          <true />
+          <key>runScanWhenIdle</key>
+          <false />
+          <key>weeklyConfiguration</key>
+          <dict>
+            <key>dayOfWeek</key>
+            <integer>6</integer>
+            <key>timeOfDay</key>
+            <integer>30</integer>
+            <key>scanType</key>
+            <string>full</string>
+          </dict>
+          <key>dailyConfiguration</key>
+          <dict>
+            <key>timeOfDay</key>
+            <integer>570</integer>
+            <key>interval</key>
+            <string>0</string>
+          </dict>
+        </dict>
+      </dict>
+    </array>
+  </dict>
+</plist>

@@ -28,7 +28,7 @@ PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE'
 param(
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Intune', 'NotIntune')]
+    [ValidateSet('Intune', 'ThirdParty')]
     [String]$mdm,
 
     [Parameter(Mandatory = $false)]
@@ -87,7 +87,7 @@ $mdm = 'Intune'
 $organisation = 'MEM v ENNBEE'
 $fullScan = $true
 $fullScanDay = 'Fri'
-[int]$fullScanHour = '11'
+[int]$fullScanHour = '00'
 [int]$fullScanMinute = '30'
 $dailyScan = $true
 [int]$dailyScanHour = '09'
@@ -97,11 +97,25 @@ $checkForDefinitionsUpdate = $true
 $ignoreExclusions = $false
 $lowPriorityScheduledScan = $true
 $runScanWhenIdle = $false
-$randomizeScanStartTime = '1'
+$randomizeScanStartTime = '0'
 #endregion testing#>
 
-#region validation
+#region functions
+function Format-XML ([xml]$xml, $indent=2)
+{
+    $StringWriter = New-Object System.IO.StringWriter
+    $XmlWriter = New-Object System.XMl.XmlTextWriter $StringWriter
+    $xmlWriter.Formatting = “indented”
+    $xmlWriter.Indentation = $Indent
+    $xml.WriteContentTo($XmlWriter)
+    $XmlWriter.Flush()
+    $StringWriter.Flush()
+    Write-Output $StringWriter.ToString()
+    #https://devblogs.microsoft.com/powershell/format-xml/
+}
+#endregion functions
 
+#region validation
 if ($fullScan -eq $false -and $dailyScan -eq $false -and $regularScanInterval -eq '0') {
     Write-Host 'You have not configured any scan options.' -ForegroundColor Red
     Break
@@ -121,79 +135,81 @@ $configpayloadUUID = $(($configpayloadUUID.Guid).ToUpper())
 $contentPayloadUUID = New-Guid
 $contentPayloadUUID = $(($contentPayloadUUID.Guid).ToUpper())
 
-
-
-$configHeader = @'
+$configHead = @'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-    <dict>
 
 '@
 
+$configHeader = @"
+<plist version="1.0">
+    <dict>
+
+"@
+
 # start of the file for Intune
 $configStartIntune = @"
+<key>PayloadUUID</key>
+<string>$configpayloadUUID</string>
+<key>PayloadType</key>
+<string>Configuration</string>
+<key>PayloadOrganization</key>
+<string>$organisation</string>
+<key>PayloadIdentifier</key>
+<string>$configpayloadUUID</string>
+<key>PayloadDisplayName</key>
+<string>Microsoft Defender for Endpoint settings</string>
+<key>PayloadDescription</key>
+<string>Microsoft Defender for Endpoint configuration settings</string>
+<key>PayloadVersion</key>
+<integer>1</integer>
+<key>PayloadEnabled</key>
+<true/>
+<key>PayloadRemovalDisallowed</key>
+<false/>
+<key>PayloadScope</key>
+<string>System</string>
+<key>PayloadContent</key>
+<array>
+    <dict>
         <key>PayloadUUID</key>
-        <string>$configpayloadUUID</string>
+        <string>$contentPayloadUUID</string>
         <key>PayloadType</key>
-        <string>Configuration</string>
+        <string>com.microsoft.wdav</string>
         <key>PayloadOrganization</key>
         <string>$organisation</string>
         <key>PayloadIdentifier</key>
-        <string>$configpayloadUUID</string>
+        <string>$contentPayloadUUID</string>
         <key>PayloadDisplayName</key>
-        <string>Microsoft Defender for Endpoint settings</string>
-        <key>PayloadDescription</key>
         <string>Microsoft Defender for Endpoint configuration settings</string>
+        <key>PayloadDescription</key>
+        <string/>
         <key>PayloadVersion</key>
         <integer>1</integer>
         <key>PayloadEnabled</key>
         <true/>
-        <key>PayloadRemovalDisallowed</key>
-        <false/>
-        <key>PayloadScope</key>
-        <string>System</string>
-        <key>PayloadContent</key>
-        <array>
-            <dict>
-                <key>PayloadUUID</key>
-                <string>$contentPayloadUUID</string>
-                <key>PayloadType</key>
-                <string>com.microsoft.wdav</string>
-                <key>PayloadOrganization</key>
-                <string>$organisation</string>
-                <key>PayloadIdentifier</key>
-                <string>$contentPayloadUUID</string>
-                <key>PayloadDisplayName</key>
-                <string>Microsoft Defender for Endpoint configuration settings</string>
-                <key>PayloadDescription</key>
-                <string/>
-                <key>PayloadVersion</key>
-                <integer>1</integer>
-                <key>PayloadEnabled</key>
-                <true/>
 
 "@
 
 # start of the configuration for all MDMs
 $configSettingsStart = @"
-                <key>features</key>
-                <dict>
-                    <key>scheduledScan</key>
-                    <string>enabled</string>
-                </dict>
-                <key>scheduledScan</key>
-                <dict>
-                    <key>ignoreExclusions</key>
-                    <$ignoreExclusions/>
-                    <key>lowPriorityScheduledScan</key>
-                    <$lowPriorityScheduledScan/>
-                    <key>randomizeScanStartTime</key>
-                    <integer>$randomizeScanStartTime</integer>
-                    <key>checkForDefinitionsUpdate</key>
-                    <$checkForDefinitionsUpdate/>
-                    <key>runScanWhenIdle</key>
-                    <$runScanWhenIdle/>
+<key>features</key>
+<dict>
+    <key>scheduledScan</key>
+    <string>enabled</string>
+</dict>
+<key>scheduledScan</key>
+<dict>
+    <key>ignoreExclusions</key>
+    <$ignoreExclusions/>
+    <key>lowPriorityScheduledScan</key>
+    <$lowPriorityScheduledScan/>
+    <key>randomizeScanStartTime</key>
+    <integer>$randomizeScanStartTime</integer>
+    <key>checkForDefinitionsUpdate</key>
+    <$checkForDefinitionsUpdate/>
+    <key>runScanWhenIdle</key>
+    <$runScanWhenIdle/>
 
 "@
 
@@ -282,7 +298,7 @@ $configSettingsEndIntune = @'
 
 '@
 
-$configSettingsEnd = @'
+$configSettingsEndThirdParty = @'
                 </dict>
 
 '@
@@ -299,13 +315,16 @@ Try {
     if ($mdm -eq 'Intune') {
         $configFile = "com.microsoft.wdav.$date.mobileconfig"
         $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEndIntune
-        $configContent = $configHeader + $configStartIntune + $configSettings + $configFooter
+        $configXML = $configHeader + $configStartIntune + $configSettings + $configFooter
     }
     else {
         $configFile = "com.microsoft.wdav.$date.plist"
-        $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEnd
-        $configContent = $configHeader + $configSettings + $configFooter
+        $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEndThirdParty
+        $configXML = $configHeader + $configSettings + $configFooter
     }
+
+    #$configContent = $configHead + $configXML
+    $configContent = $configHead + $(Format-XML $configXML)
 
     $configContent | Out-File -FilePath $configFile
 }
@@ -314,3 +333,6 @@ Catch {
     Break
 }
 #endregion config export
+
+
+
