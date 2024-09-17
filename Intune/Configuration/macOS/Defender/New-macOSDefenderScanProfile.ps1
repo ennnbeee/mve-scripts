@@ -4,7 +4,7 @@
 .DESCRIPTION
 
 
-.PARAMETER tenantId
+.PARAMETER mdm
 Provide the Id of the tenant to connecto to.
 
 .INPUTS
@@ -15,17 +15,21 @@ New-MDEmacOSScanProfile.ps1 creates a mobileconfig file in the same folder as th
 
 .EXAMPLE
 Creates a new macOS MDE profile to configure no full scan, but daily scan at 10:30
-PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE' -fullScanDay None -dailyScanHour 10 -dailyScanMinute 30
+PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE'
 
 .EXAMPLE
 Creates a new macOS MDE profile to configure a full scan on a Wednesday at 14:45, but daily scan at 10:30
-PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE' -fullScanDay Wed -dailyScanHour 10 -dailyScanMinute 30
+PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE'
 
 #>
 
 [CmdletBinding()]
 
 param(
+
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Intune', 'NotIntune')]
+    [String]$mdm,
 
     [Parameter(Mandatory = $false)]
     [String]$organisation = 'MEM v ENNBEE',
@@ -34,7 +38,7 @@ param(
     [boolean]$fullScan,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'All')]
+    [ValidateSet('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'All', 'Never')]
     [String]$fullScanDay = 'Fri',
 
     [Parameter(Mandatory = $false)]
@@ -42,7 +46,7 @@ param(
     [int]$fullScanHour = '10',
 
     [Parameter(Mandatory = $false)]
-    [ValidateRange(0, 60)]
+    [ValidateRange(0, 59)]
     [int]$fullScanMinute = '30',
 
     [Parameter(Mandatory = $true)]
@@ -53,7 +57,7 @@ param(
     [int]$dailyScanHour = '12',
 
     [Parameter(Mandatory = $false)]
-    [ValidateRange(0, 60)]
+    [ValidateRange(0, 59)]
     [int]$dailyScanMinute = '30',
 
     [Parameter(Mandatory = $false)]
@@ -70,36 +74,64 @@ param(
     [boolean]$lowPriorityScheduledScan = $true,
 
     [Parameter(Mandatory = $false)]
+    [boolean]$runScanWhenIdle = $false,
+
+    [Parameter(Mandatory = $false)]
     [ValidateRange(0, 23)]
     [Int]$randomizeScanStartTime = '0'
 
 )
 
-#region testing
+<#region testing
+$mdm = 'Intune'
+$organisation = 'MEM v ENNBEE'
 $fullScan = $true
 $fullScanDay = 'Fri'
-[int]$fullScanHour = '15'
-[int]$fullScanMinute = '00'
-
+[int]$fullScanHour = '11'
+[int]$fullScanMinute = '30'
 $dailyScan = $true
-[int]$dailyScanHour = '12'
-[int]$dailyScanMinute = '15'
-
-$regularScanInterval = '6'
-
+[int]$dailyScanHour = '09'
+[int]$dailyScanMinute = '30'
+$regularScanInterval = '0'
 $checkForDefinitionsUpdate = $true
 $ignoreExclusions = $false
 $lowPriorityScheduledScan = $true
+$runScanWhenIdle = $false
 $randomizeScanStartTime = '1'
-#endregion testing
+#endregion testing#>
 
 #region validation
+
+if ($fullScan -eq $false -and $dailyScan -eq $false -and $regularScanInterval -eq '0') {
+    Write-Host 'You have not configured any scan options.' -ForegroundColor Red
+    Break
+}
+#endregion validation
+
+#region variables
+# setting boolean variables to string and lower case
+$checkForDefinitionsUpdate = $(([string]$checkForDefinitionsUpdate).ToLower())
+$ignoreExclusions = $(([string]$ignoreExclusions).ToLower())
+$lowPriorityScheduledScan = $(([string]$lowPriorityScheduledScan).ToLower())
+$runScanWhenIdle = $(([string]$runScanWhenIdle).ToLower())
+
+# creating UUIDs for Intune payload
 $configpayloadUUID = New-Guid
 $configpayloadUUID = $(($configpayloadUUID.Guid).ToUpper())
 $contentPayloadUUID = New-Guid
 $contentPayloadUUID = $(($contentPayloadUUID.Guid).ToUpper())
 
-$configStart = @"
+# start of the file for third-party MDMs
+$configStart = @'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+
+'@
+
+# start of the file for Intune
+$configStartIntune = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -125,10 +157,6 @@ $configStart = @"
         <key>PayloadScope</key>
         <string>System</string>
         <key>PayloadContent</key>
-
-"@
-
-$configSettingsStart = @"
         <array>
             <dict>
                 <key>PayloadUUID</key>
@@ -147,6 +175,11 @@ $configSettingsStart = @"
                 <integer>1</integer>
                 <key>PayloadEnabled</key>
                 <true/>
+
+"@
+
+# start of the configuration for all MDMs
+$configSettingsStart = @"
                 <key>features</key>
                 <dict>
                     <key>scheduledScan</key>
@@ -162,6 +195,8 @@ $configSettingsStart = @"
                     <integer>$randomizeScanStartTime</integer>
                     <key>checkForDefinitionsUpdate</key>
                     <$checkForDefinitionsUpdate/>
+                    <key>runScanWhenIdle</key>
+                    <$runScanWhenIdle/>
 
 "@
 
@@ -180,6 +215,7 @@ if ($fullScan -eq $true) {
             'Thu' { '5' }
             'Fri' { '6' }
             'Sat' { '7' }
+            'Never' { '8' }
         }
         [int]$fullScanTimeOfDay = $fullScanHour * 60 + $fullScanMinute
 
@@ -211,7 +247,6 @@ else {
 '@
 }
 if ($dailyScan -eq $true) {
-    $regularScanInterval = 'Never'
     if ([string]::IsNullOrEmpty($dailyScanHour) -or [string]::IsNullOrEmpty($dailyScanMinute)) {
         Write-Host 'Defender Daily Scan configured but missing scan hour or minute.' -ForegroundColor Red
         Break
@@ -225,7 +260,7 @@ if ($dailyScan -eq $true) {
                         <key>timeOfDay</key>
                         <integer>$dailyScanTimeOfDay</integer>
                         <key>interval</key>
-                        <string>0</string>
+                        <string>$regularScanInterval</string>
                     </dict>
 
 "@
@@ -234,19 +269,24 @@ if ($dailyScan -eq $true) {
 else {
 
     $configSettingsQuick = @"
-        <key>dailyConfiguration</key>
-        <dict>
-            <key>interval</key>
-            <string>$regularScanInterval</string>
-        </dict>
+                    <key>dailyConfiguration</key>
+                    <dict>
+                        <key>interval</key>
+                        <string>$regularScanInterval</string>
+                    </dict>
 
 "@
 }
 
-$configSettingsEnd = @'
+$configSettingsEndIntune = @'
                 </dict>
             </dict>
         </array>
+
+'@
+
+$configSettingsEnd = @'
+                </dict>
 
 '@
 
@@ -254,17 +294,26 @@ $configEnd = @'
     </dict>
 </plist>
 '@
-#endregion validation
+#endregion variables
 
-
+#region config export
 Try {
-    write-host "https://github.com/microsoft/mdatp-xplat/blob/master/macos/schema/schema.json"
-    $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEnd
-    $configContent = $configStart + $configSettings + $configEnd
-    $configfile = "MDEConfig_FullScan$fullScanDay$fullScanTimeOfDay`_DailyScan$dailyScanTimeOfDay`_RegularScan$regularScanInterval.mobileconfig"
-    $configContent | Out-File -FilePath $configfile
+    $date = Get-Date -Format yyyyMMddHHmm
+    if ($mdm -eq 'Intune') {
+        $configFile = "com.microsoft.wdav.$date.mobileconfig"
+        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEndIntune
+        $configContent = $configStartIntune + $configSettings + $configEnd
+    }
+    else {
+        $configFile = "com.microsoft.wdav.$date.plist"
+        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEnd
+        $configContent = $configStart + $configSettings + $configEnd
+    }
+
+    $configContent | Out-File -FilePath $configFile
 }
 Catch {
     Write-Host "Unable to write file $configfile to current location."
     Break
 }
+#endregion config export

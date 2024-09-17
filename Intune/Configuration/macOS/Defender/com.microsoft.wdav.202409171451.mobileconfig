@@ -3,13 +3,13 @@
 <plist version="1.0">
     <dict>
         <key>PayloadUUID</key>
-        <string>0D71A384-38AE-4DEF-94DC-F962B2C9CF53</string>
+        <string>A444A028-21AC-44E7-ACCB-197A1B934D7E</string>
         <key>PayloadType</key>
         <string>Configuration</string>
         <key>PayloadOrganization</key>
         <string>MEM v ENNBEE</string>
         <key>PayloadIdentifier</key>
-        <string>0D71A384-38AE-4DEF-94DC-F962B2C9CF53</string>
+        <string>A444A028-21AC-44E7-ACCB-197A1B934D7E</string>
         <key>PayloadDisplayName</key>
         <string>Microsoft Defender for Endpoint settings</string>
         <key>PayloadDescription</key>
@@ -26,13 +26,13 @@
         <array>
             <dict>
                 <key>PayloadUUID</key>
-                <string>5D1E1E27-851F-4EEC-ABE7-D06321A332AC</string>
+                <string>71910D62-11D3-402E-9B3F-18724F974199</string>
                 <key>PayloadType</key>
                 <string>com.microsoft.wdav</string>
                 <key>PayloadOrganization</key>
                 <string>MEM v ENNBEE</string>
                 <key>PayloadIdentifier</key>
-                <string>5D1E1E27-851F-4EEC-ABE7-D06321A332AC</string>
+                <string>71910D62-11D3-402E-9B3F-18724F974199</string>
                 <key>PayloadDisplayName</key>
                 <string>Microsoft Defender for Endpoint configuration settings</string>
                 <key>PayloadDescription</key>
@@ -49,22 +49,26 @@
                 <key>scheduledScan</key>
                 <dict>
                     <key>ignoreExclusions</key>
-                    <false/>
+                    <True/>
                     <key>lowPriorityScheduledScan</key>
-                    <true/>
+                    <True/>
+                    <key>randomizeScanStartTime</key>
+                    <integer>0</integer>
+                    <key>checkForDefinitionsUpdate</key>
+                    <True/>
                     <key>dailyConfiguration</key>
                     <dict>
                         <key>timeOfDay</key>
-                        <integer>735</integer>
+                        <integer>615</integer>
                         <key>interval</key>
                         <string>0</string>
                     </dict>
                     <key>weeklyConfiguration</key>
                     <dict>
                         <key>dayOfWeek</key>
-                        <integer>6</integer>
+                        <integer>4</integer>
                         <key>timeOfDay</key>
-                        <integer>900</integer>
+                        <integer>885</integer>
                         <key>scanType</key>
                         <string>full</string>
                     </dict>
