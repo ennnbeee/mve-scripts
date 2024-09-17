@@ -83,7 +83,7 @@ param(
 )
 
 <#region testing
-$mdm = 'Intune'
+$mdm = 'ThirdParty'
 $organisation = 'MEM v ENNBEE'
 $fullScan = $true
 $fullScanDay = 'Fri'
@@ -333,6 +333,3 @@ Catch {
     Break
 }
 #endregion config export
-
-
-
