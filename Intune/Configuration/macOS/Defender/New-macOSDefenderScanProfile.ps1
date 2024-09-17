@@ -121,8 +121,9 @@ $configpayloadUUID = $(($configpayloadUUID.Guid).ToUpper())
 $contentPayloadUUID = New-Guid
 $contentPayloadUUID = $(($contentPayloadUUID.Guid).ToUpper())
 
-# start of the file for third-party MDMs
-$configStart = @'
+
+
+$configHeader = @'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -132,10 +133,6 @@ $configStart = @'
 
 # start of the file for Intune
 $configStartIntune = @"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-    <dict>
         <key>PayloadUUID</key>
         <string>$configpayloadUUID</string>
         <key>PayloadType</key>
@@ -290,7 +287,7 @@ $configSettingsEnd = @'
 
 '@
 
-$configEnd = @'
+$configFooter = @'
     </dict>
 </plist>
 '@
@@ -301,13 +298,13 @@ Try {
     $date = Get-Date -Format yyyyMMddHHmm
     if ($mdm -eq 'Intune') {
         $configFile = "com.microsoft.wdav.$date.mobileconfig"
-        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEndIntune
-        $configContent = $configStartIntune + $configSettings + $configEnd
+        $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEndIntune
+        $configContent = $configHeader + $configStartIntune + $configSettings + $configFooter
     }
     else {
         $configFile = "com.microsoft.wdav.$date.plist"
-        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEnd
-        $configContent = $configStart + $configSettings + $configEnd
+        $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEnd
+        $configContent = $configHeader + $configSettings + $configFooter
     }
 
     $configContent | Out-File -FilePath $configFile

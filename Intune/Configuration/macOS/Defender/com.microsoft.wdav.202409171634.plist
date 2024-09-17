@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+                <key>features</key>
+                <dict>
+                    <key>scheduledScan</key>
+                    <string>enabled</string>
+                </dict>
+                <key>scheduledScan</key>
+                <dict>
+                    <key>ignoreExclusions</key>
+                    <True/>
+                    <key>lowPriorityScheduledScan</key>
+                    <True/>
+                    <key>randomizeScanStartTime</key>
+                    <integer>0</integer>
+                    <key>checkForDefinitionsUpdate</key>
+                    <True/>
+                    <key>runScanWhenIdle</key>
+                    <True/>
+                    <key>weeklyConfiguration</key>
+                    <dict>
+                        <key>dayOfWeek</key>
+                        <integer>4</integer>
+                        <key>timeOfDay</key>
+                        <integer>885</integer>
+                        <key>scanType</key>
+                        <string>full</string>
+                    </dict>
+                    <key>dailyConfiguration</key>
+                    <dict>
+                        <key>timeOfDay</key>
+                        <integer>615</integer>
+                        <key>interval</key>
+                        <string>0</string>
+                    </dict>
+                </dict>
+    </dict>
+</plist>
