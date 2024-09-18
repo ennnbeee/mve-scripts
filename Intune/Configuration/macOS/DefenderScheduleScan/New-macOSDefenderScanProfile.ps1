@@ -1,25 +1,70 @@
 <#
 .SYNOPSIS
 
-.DESCRIPTION
 
+.DESCRIPTION
+Takes parameters passed through the script to create Defender Antivirus scan schedules for full, quick, and regular, and output the configuration
+to either a mobileconfig for use in Microsoft Intune, or plist for use in Third-Party MDM solutions
 
 .PARAMETER mdm
-Provide the Id of the tenant to connecto to.
+Configures whether profile file are created as mobileconfig for Intune, or plist for Third-Party MDM solutions.
+Valid options are 'Intune' or 'ThirdParty'
+
+.PARAMETER organisation
+String, default is 'MEM v ENNBEE': Configures the organisation name in the mobileconfig file.
+
+.PARAMETER fullScan
+Boolean, required: if true allow for configuration of a Full Defender scan.
+
+.PARAMETER fullScanDay
+String range, default is 'Fri': the day of the week you want the full scan to run, or 'All' for every day.
+
+.PARAMETER fullScanHour
+Integer range between 0-23, default is '10': the hour you want the full scan to run.
+
+.PARAMETER fullScanMinute
+Integer range between 0-59, default is '30': the minute you want the full scan to run.
+
+.PARAMETER dailyScan
+Boolean, if true allow for configuration of a daily quick Defender scan.
+
+.PARAMETER dailyScanHour
+Integer range between 0-23, default is '12': the hour you want the daily quick scan to run.
+
+.PARAMETER dailyScanMinute
+Integer range between 0-59, default is '30': the minute you want the daily quick scan to run.
+
+.PARAMETER regularScanInterval
+Integer range between 0-24, default is '0': how frequently a regular quick scan is run in a day, '6' will run a scan every six hours, '24' will run a scan every day.
+
+.PARAMETER randomizeScanStartTime
+Integer range between 0-24, default is '0': allows the scan to run at a time between the scheduled scan time and the configured randomizeScanStartTime hour value.
+
+.PARAMETER checkForDefinitionsUpdate
+Boolean, default is true: will check for new definition updates before any scheduled scan.
+
+.PARAMETER ignoreExclusions
+Boolean, default is false: will adhere to exclusion settings for any scheduled scan.
+
+.PARAMETER lowPriorityScheduledScan
+Boolean, default is false: will run the scan at a low priority which may cause the scan to take longer than expected.
+
+.PARAMETER runScanWhenIdle
+Boolean, default is false: will run the scan within the scheduled time and not wait for the device to be idle.
 
 .INPUTS
-None. You can't pipe objects to New-MDEmacOSScanProfile.ps1.
+None. You can't pipe objects to New-macOSDefenderScanProfile.
 
 .OUTPUTS
-New-MDEmacOSScanProfile.ps1 creates a mobileconfig file in the same folder as the script.
+New-macOSDefenderScanProfile creates a mobileconfig and plist files in the same folder as the script.
 
 .EXAMPLE
-Creates a new macOS MDE profile to configure no full scan, but daily scan at 10:30
-PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE'
+Create an Intune profile with full scan at 14:00 on a Wednesday, and daily scan at 10:30
+PS> .\New-macOSDefenderScanProfile -mdm Intune -fullScan $true -fullScanDay Wed -fullScanHour 14 -fullScanMinute 00 -dailyScan $true -dailyScanHour 10 -dailyScanMinute 30
 
 .EXAMPLE
-Creates a new macOS MDE profile to configure a full scan on a Wednesday at 14:45, but daily scan at 10:30
-PS> .\New-MDEmacOSScanProfile.ps1 -organisation 'MEM v ENNBEE'
+Create a Third Party profile with full scan at 11:45 on a Monday, no daily scan configured, regular scan every 12 hours, and random start time of 1 hour.
+PS> .\New-macOSDefenderScanProfile -mdm ThirdParty -fullScan $true -fullScanDay Mon -fullScanHour 11 -fullScanMinute 45 -regularScanInterval 12 -randomizeScanStartTime 1
 
 #>
 
@@ -65,20 +110,20 @@ param(
     [Int]$regularScanInterval = '0',
 
     [Parameter(Mandatory = $false)]
+    [ValidateRange(0, 23)]
+    [Int]$randomizeScanStartTime = '0',
+
+    [Parameter(Mandatory = $false)]
     [boolean]$checkForDefinitionsUpdate = $true,
 
     [Parameter(Mandatory = $false)]
     [boolean]$ignoreExclusions = $false,
 
     [Parameter(Mandatory = $false)]
-    [boolean]$lowPriorityScheduledScan = $true,
+    [boolean]$lowPriorityScheduledScan = $false,
 
     [Parameter(Mandatory = $false)]
-    [boolean]$runScanWhenIdle = $false,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateRange(0, 23)]
-    [Int]$randomizeScanStartTime = '0'
+    [boolean]$runScanWhenIdle = $false
 
 )
 
@@ -95,17 +140,16 @@ $dailyScan = $true
 $regularScanInterval = '0'
 $checkForDefinitionsUpdate = $true
 $ignoreExclusions = $false
-$lowPriorityScheduledScan = $true
+$lowPriorityScheduledScan = $false
 $runScanWhenIdle = $false
 $randomizeScanStartTime = '0'
 #endregion testing#>
 
 #region functions
-function Format-XML ([xml]$xml, $indent=2)
-{
+function Format-XML ([xml]$xml, $indent = 2) {
     $StringWriter = New-Object System.IO.StringWriter
     $XmlWriter = New-Object System.XMl.XmlTextWriter $StringWriter
-    $xmlWriter.Formatting = “indented”
+    $xmlWriter.Formatting = 'indented'
     $xmlWriter.Indentation = $Indent
     $xml.WriteContentTo($XmlWriter)
     $XmlWriter.Flush()
@@ -124,10 +168,10 @@ if ($fullScan -eq $false -and $dailyScan -eq $false -and $regularScanInterval -e
 
 #region variables
 # setting boolean variables to string and lower case
-$checkForDefinitionsUpdate = $(([string]$checkForDefinitionsUpdate).ToLower())
-$ignoreExclusions = $(([string]$ignoreExclusions).ToLower())
-$lowPriorityScheduledScan = $(([string]$lowPriorityScheduledScan).ToLower())
-$runScanWhenIdle = $(([string]$runScanWhenIdle).ToLower())
+$checkForDefinitionsUpdateString = $checkForDefinitionsUpdate.ToString().ToLower()
+$ignoreExclusionsString = $ignoreExclusions.ToString().ToLower()
+$lowPriorityScheduledScanString = $lowPriorityScheduledScan.ToString().ToLower()
+$runScanWhenIdleString = $runScanWhenIdle.ToString().ToLower()
 
 # creating UUIDs for Intune payload
 $configpayloadUUID = New-Guid
@@ -141,11 +185,11 @@ $configHead = @'
 
 '@
 
-$configHeader = @"
+$configHeader = @'
 <plist version="1.0">
     <dict>
 
-"@
+'@
 
 # start of the file for Intune
 $configStartIntune = @"
@@ -201,15 +245,15 @@ $configSettingsStart = @"
 <key>scheduledScan</key>
 <dict>
     <key>ignoreExclusions</key>
-    <$ignoreExclusions/>
+    <$ignoreExclusionsString/>
     <key>lowPriorityScheduledScan</key>
-    <$lowPriorityScheduledScan/>
+    <$lowPriorityScheduledScanString/>
     <key>randomizeScanStartTime</key>
     <integer>$randomizeScanStartTime</integer>
     <key>checkForDefinitionsUpdate</key>
-    <$checkForDefinitionsUpdate/>
+    <$checkForDefinitionsUpdateString/>
     <key>runScanWhenIdle</key>
-    <$runScanWhenIdle/>
+    <$runScanWhenIdleString/>
 
 "@
 
@@ -233,15 +277,15 @@ if ($fullScan -eq $true) {
         [int]$fullScanTimeOfDay = $fullScanHour * 60 + $fullScanMinute
 
         $configSettingsFull = @"
-                    <key>weeklyConfiguration</key>
-                    <dict>
-                        <key>dayOfWeek</key>
-                        <integer>$dayOfWeek</integer>
-                        <key>timeOfDay</key>
-                        <integer>$fullScanTimeOfDay</integer>
-                        <key>scanType</key>
-                        <string>full</string>
-                    </dict>
+<key>weeklyConfiguration</key>
+<dict>
+    <key>dayOfWeek</key>
+    <integer>$dayOfWeek</integer>
+    <key>timeOfDay</key>
+    <integer>$fullScanTimeOfDay</integer>
+    <key>scanType</key>
+    <string>full</string>
+</dict>
 
 "@
     }
@@ -249,13 +293,13 @@ if ($fullScan -eq $true) {
 else {
     $fullScanDay = 'Never'
     $configSettingsFull = @'
-                    <key>weeklyConfiguration</key>
-                    <dict>
-                        <key>dayOfWeek</key>
-                        <integer>8</integer>
-                        <key>scanType</key>
-                        <string>full</string>
-                    </dict>
+<key>weeklyConfiguration</key>
+<dict>
+    <key>dayOfWeek</key>
+    <integer>8</integer>
+    <key>scanType</key>
+    <string>full</string>
+</dict>
 
 '@
 }
@@ -268,13 +312,13 @@ if ($dailyScan -eq $true) {
         [int]$dailyScanTimeOfDay = $dailyScanHour * 60 + $dailyScanMinute
 
         $configSettingsQuick = @"
-                    <key>dailyConfiguration</key>
-                    <dict>
-                        <key>timeOfDay</key>
-                        <integer>$dailyScanTimeOfDay</integer>
-                        <key>interval</key>
-                        <string>$regularScanInterval</string>
-                    </dict>
+<key>dailyConfiguration</key>
+<dict>
+    <key>timeOfDay</key>
+    <integer>$dailyScanTimeOfDay</integer>
+    <key>interval</key>
+    <string>$regularScanInterval</string>
+</dict>
 
 "@
     }
@@ -282,24 +326,24 @@ if ($dailyScan -eq $true) {
 else {
 
     $configSettingsQuick = @"
-                    <key>dailyConfiguration</key>
-                    <dict>
-                        <key>interval</key>
-                        <string>$regularScanInterval</string>
-                    </dict>
+<key>dailyConfiguration</key>
+<dict>
+    <key>interval</key>
+    <string>$regularScanInterval</string>
+</dict>
 
 "@
 }
 
 $configSettingsEndIntune = @'
-                </dict>
-            </dict>
-        </array>
+        </dict>
+    </dict>
+</array>
 
 '@
 
 $configSettingsEndThirdParty = @'
-                </dict>
+</dict>
 
 '@
 
@@ -314,19 +358,19 @@ Try {
     $date = Get-Date -Format yyyyMMddHHmm
     if ($mdm -eq 'Intune') {
         $configFile = "com.microsoft.wdav.$date.mobileconfig"
-        $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEndIntune
+        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEndIntune
         $configXML = $configHeader + $configStartIntune + $configSettings + $configFooter
     }
     else {
         $configFile = "com.microsoft.wdav.$date.plist"
-        $configSettings = $configSettingsStart + $configSettingsFull + $configSettingsQuick + $configSettingsEndThirdParty
+        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEndThirdParty
         $configXML = $configHeader + $configSettings + $configFooter
     }
 
     #$configContent = $configHead + $configXML
     $configContent = $configHead + $(Format-XML $configXML)
-
     $configContent | Out-File -FilePath $configFile
+    Write-Host "Configuration profile for $mdm written to $configFile" -ForegroundColor Green
 }
 Catch {
     Write-Host "Unable to write file $configfile to current location."
