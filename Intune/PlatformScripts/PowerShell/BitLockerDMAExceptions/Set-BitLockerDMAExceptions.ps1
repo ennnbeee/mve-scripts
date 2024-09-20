@@ -1,4 +1,4 @@
-# Allow for silent BitLocker Encryption
+# Allow for silent and automatic BitLocker Encryption
 # https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/oem-bitlocker#un-allowed-dma-capable-busdevices-detected
 
 $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\DmaSecurity\AllowedBuses'
