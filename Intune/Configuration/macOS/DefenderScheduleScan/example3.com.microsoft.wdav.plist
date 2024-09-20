@@ -31,7 +31,7 @@
         <key>timeOfDay</key>
         <integer>555</integer>
         <key>scanType</key>
-        <string>full</string>
+        <string>quick</string>
       </dict>
     </dict>
   </dict>

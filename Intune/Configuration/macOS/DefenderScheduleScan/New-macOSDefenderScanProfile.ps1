@@ -1,7 +1,6 @@
 <#
 .SYNOPSIS
 
-
 .DESCRIPTION
 Takes parameters passed through the script to create Defender Antivirus scan schedules for full, quick, and regular, and output the configuration
 to either a mobileconfig for use in Microsoft Intune, or plist for use in Third-Party MDM solutions
@@ -13,26 +12,29 @@ Valid options are 'Intune' or 'ThirdParty'
 .PARAMETER organisation
 String, default is 'MEM v ENNBEE': Configures the organisation name in the mobileconfig file.
 
-.PARAMETER fullScan
+.PARAMETER weeklyScan
 Boolean, required: if true allow for configuration of a Full Defender scan.
 
-.PARAMETER fullScanDay
-String range, default is 'Fri': the day of the week you want the full scan to run, or 'All' for every day.
+.PARAMETER weeklyScanType
+String, either quick or full, default is full; if true allow for configuration of a Full Defender scan.
 
-.PARAMETER fullScanHour
-Integer range between 0-23, default is '10': the hour you want the full scan to run.
+.PARAMETER weeklyScanDay
+String range, default is 'fri': the day of the week you want the full scan to run, or 'all' for every day.
 
-.PARAMETER fullScanMinute
-Integer range between 0-59, default is '30': the minute you want the full scan to run.
+.PARAMETER weeklyScanHour
+Integer range between 0-23: the hour you want the full scan to run.
+
+.PARAMETER weeklyScanMinute
+Integer range between 0-59: the minute you want the full scan to run.
 
 .PARAMETER dailyScan
 Boolean, if true allow for configuration of a daily quick Defender scan.
 
 .PARAMETER dailyScanHour
-Integer range between 0-23, default is '12': the hour you want the daily quick scan to run.
+Integer range between 0-23: the hour you want the daily quick scan to run.
 
 .PARAMETER dailyScanMinute
-Integer range between 0-59, default is '30': the minute you want the daily quick scan to run.
+Integer range between 0-59: the minute you want the daily quick scan to run.
 
 .PARAMETER regularScanInterval
 Integer range between 0-24, default is '0': how frequently a regular quick scan is run in a day, '6' will run a scan every six hours, '24' will run a scan every day.
@@ -60,11 +62,11 @@ New-macOSDefenderScanProfile creates a mobileconfig and plist files in the same 
 
 .EXAMPLE
 Create an Intune profile with full scan at 14:00 on a Wednesday, and daily scan at 10:30
-PS> .\New-macOSDefenderScanProfile -mdm Intune -fullScan $true -fullScanDay Wed -fullScanHour 14 -fullScanMinute 00 -dailyScan $true -dailyScanHour 10 -dailyScanMinute 30
+PS> .\New-macOSDefenderScanProfile -mdm Intune -weeklyScan $true -weeklyScanType full -weeklyScanDay wed -weeklyScanHour 14 -weeklyScanMinute 00 -dailyScan $true -dailyScanHour 10 -dailyScanMinute 30
 
 .EXAMPLE
 Create a Third Party profile with full scan at 11:45 on a Monday, no daily scan configured, regular scan every 12 hours, and random start time of 1 hour.
-PS> .\New-macOSDefenderScanProfile -mdm ThirdParty -fullScan $true -fullScanDay Mon -fullScanHour 11 -fullScanMinute 45 -regularScanInterval 12 -randomizeScanStartTime 1
+PS> .\New-macOSDefenderScanProfile -mdm ThirdParty -weeklyScan $true -weeklyScanType full -weeklyScanDay mon -weeklyScanHour 11 -weeklyScanMinute 45 -regularScanInterval 12 -randomizeScanStartTime 1
 
 #>
 
@@ -80,30 +82,34 @@ param(
     [String]$organisation = 'MEM v ENNBEE',
 
     [Parameter(Mandatory = $true)]
-    [boolean]$fullScan,
+    [boolean]$weeklyScan,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'All', 'Never')]
-    [String]$fullScanDay = 'Fri',
+    [ValidateSet('full', 'quick')]
+    [string]$weeklyScanType = 'full',
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'all', 'never')]
+    [String]$weeklyScanDay,
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(0, 23)]
-    [int]$fullScanHour = '10',
+    [int]$weeklyScanHour,
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(0, 59)]
-    [int]$fullScanMinute = '30',
+    [int]$weeklyScanMinute,
 
     [Parameter(Mandatory = $true)]
     [boolean]$dailyScan,
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(0, 23)]
-    [int]$dailyScanHour = '12',
+    [int]$dailyScanHour,
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(0, 59)]
-    [int]$dailyScanMinute = '30',
+    [int]$dailyScanMinute,
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(0, 24)]
@@ -128,12 +134,13 @@ param(
 )
 
 <#region testing
-$mdm = 'ThirdParty'
+$mdm = 'Intune'
 $organisation = 'MEM v ENNBEE'
-$fullScan = $true
-$fullScanDay = 'Fri'
-[int]$fullScanHour = '00'
-[int]$fullScanMinute = '30'
+$weeklyScan = $true
+$weeklyScanType = 'full'
+$weeklyScanDay = 'Fri'
+[int]$weeklyScanHour = '00'
+[int]$weeklyScanMinute = '30'
 $dailyScan = $true
 [int]$dailyScanHour = '09'
 [int]$dailyScanMinute = '30'
@@ -160,7 +167,7 @@ function Format-XML ([xml]$xml, $indent = 2) {
 #endregion functions
 
 #region validation
-if ($fullScan -eq $false -and $dailyScan -eq $false -and $regularScanInterval -eq '0') {
+if ($weeklyScan -eq $false -and $dailyScan -eq $false -and $regularScanInterval -eq '0') {
     Write-Host 'You have not configured any scan options.' -ForegroundColor Red
     Break
 }
@@ -257,42 +264,41 @@ $configSettingsStart = @"
 
 "@
 
-if ($fullScan -eq $true) {
-    if ([string]::IsNullOrEmpty($fullScanDay) -or [string]::IsNullOrEmpty($fullScanHour) -or [string]::IsNullOrEmpty($fullScanMinute)) {
-        Write-Host 'Defender Full Scan configured but missing scan day or hour or minute.' -ForegroundColor Red
+if ($weeklyScan -eq $true) {
+    if ([string]::IsNullOrEmpty($weeklyScanType) -or [string]::IsNullOrEmpty($weeklyScanDay) -or [string]::IsNullOrEmpty($weeklyScanHour) -or [string]::IsNullOrEmpty($weeklyScanMinute)) {
+        Write-Host 'Defender Weekly Scan is configured but missing scan type, scan day or scan hour or minute.' -ForegroundColor Red
         Break
     }
     else {
-        $dayOfWeek = switch ($fullScanDay) {
-            'All' { '0' }
-            'Sun' { '1' }
-            'Mon' { '2' }
-            'Tue' { '3' }
-            'Wed' { '4' }
-            'Thu' { '5' }
-            'Fri' { '6' }
-            'Sat' { '7' }
-            'Never' { '8' }
+        $dayOfWeek = switch ($weeklyScanDay) {
+            'all' { '0' }
+            'sun' { '1' }
+            'mon' { '2' }
+            'tue' { '3' }
+            'wed' { '4' }
+            'thu' { '5' }
+            'fri' { '6' }
+            'sat' { '7' }
+            'never' { '8' }
         }
-        [int]$fullScanTimeOfDay = $fullScanHour * 60 + $fullScanMinute
+        [int]$weeklyScanTimeOfDay = $weeklyScanHour * 60 + $weeklyScanMinute
 
-        $configSettingsFull = @"
+        $configSettingsWeekly = @"
 <key>weeklyConfiguration</key>
 <dict>
     <key>dayOfWeek</key>
     <integer>$dayOfWeek</integer>
     <key>timeOfDay</key>
-    <integer>$fullScanTimeOfDay</integer>
+    <integer>$weeklyScanTimeOfDay</integer>
     <key>scanType</key>
-    <string>full</string>
+    <string>$weeklyScanType</string>
 </dict>
 
 "@
     }
 }
 else {
-    $fullScanDay = 'Never'
-    $configSettingsFull = @'
+    $configSettingsWeekly = @'
 <key>weeklyConfiguration</key>
 <dict>
     <key>dayOfWeek</key>
@@ -311,7 +317,7 @@ if ($dailyScan -eq $true) {
     else {
         [int]$dailyScanTimeOfDay = $dailyScanHour * 60 + $dailyScanMinute
 
-        $configSettingsQuick = @"
+        $configSettingsDaily = @"
 <key>dailyConfiguration</key>
 <dict>
     <key>timeOfDay</key>
@@ -325,7 +331,7 @@ if ($dailyScan -eq $true) {
 }
 else {
 
-    $configSettingsQuick = @"
+    $configSettingsDaily = @"
 <key>dailyConfiguration</key>
 <dict>
     <key>interval</key>
@@ -358,12 +364,12 @@ Try {
     $date = Get-Date -Format yyyyMMddHHmm
     if ($mdm -eq 'Intune') {
         $configFile = "com.microsoft.wdav.$date.mobileconfig"
-        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEndIntune
+        $configSettings = $configSettingsStart + $configSettingsDaily + $configSettingsWeekly + $configSettingsEndIntune
         $configXML = $configHeader + $configStartIntune + $configSettings + $configFooter
     }
     else {
         $configFile = "com.microsoft.wdav.$date.plist"
-        $configSettings = $configSettingsStart + $configSettingsQuick + $configSettingsFull + $configSettingsEndThirdParty
+        $configSettings = $configSettingsStart + $configSettingsDaily + $configSettingsWeekly + $configSettingsEndThirdParty
         $configXML = $configHeader + $configSettings + $configFooter
     }
 
