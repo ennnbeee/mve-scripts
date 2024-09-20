@@ -12,6 +12,12 @@ Windows 11 Feature Updates based on device readiness risk assements data.
 .PARAMETER tenantId
 Provide the Id of the tenant to connecto to.
 
+.PARAMETER appId
+Provide the Id of the Entra App registration to be used for authentication.
+
+.PARAMETER appSecret
+Provide the App secret to allow for authentication to graph
+
 .PARAMETER featureUpdateBuild
 Select the Windows 11 Feature Update verion you wish to deploy
 Choice of 22H2 or 23H2.
@@ -40,10 +46,10 @@ None. You can't pipe objects to Invoke-Windows11Accelerator.
 None. Invoke-Windows11Accelerator doesn't generate any output.
 
 .EXAMPLE
-PS> .\Invoke-Windows11Accelerator.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 23H2 -target Devices -extensionAttribute 15
+PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target device -extensionAttribute 15
 
 .EXAMPLE
-PS> .\Invoke-Windows11Accelerator.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -featureUpdateBuild 22H2 -target Users -extensionAttribute 10
+PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target user -extensionAttribute 10
 
 #>
 
@@ -73,7 +79,10 @@ param(
     [String]$extensionAttribute,
 
     [Parameter(Mandatory = $false)]
-    [Switch]$deploy
+    [Switch]$deploy,
+
+    [Parameter(Mandatory = $false)]
+    [String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All'
 
 )
 
@@ -375,10 +384,15 @@ Function Get-ManagedDevices() {
 #endregion Functions
 
 #region testing
+$tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
+$appId = '297b3303-da1a-4e58-bdd2-b8d681d1bd71'
+$extensionAttribute = 10
+$target = 'user'
+$featureUpdateBuild = '23H2'
 #endregion testing
 
 #region app auth
-Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret -scopes $scopes
+Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret
 #endregion app auth
 
 #region Variables
@@ -417,25 +431,6 @@ $featureUpdateCreateCSVJSON = @"
 #endregion Variables
 
 #region Intro
-Write-Host
-Write-Host '░██╗░░░░░░░██╗██╗███╗░░██╗██████╗░░█████╗░░██╗░░░░░░░██╗░██████╗  ░░███╗░░░░███╗░░'
-Write-Host '░██║░░██╗░░██║██║████╗░██║██╔══██╗██╔══██╗░██║░░██╗░░██║██╔════╝  ░████║░░░████║░░'
-Write-Host '░╚██╗████╗██╔╝██║██╔██╗██║██║░░██║██║░░██║░╚██╗████╗██╔╝╚█████╗░  ██╔██║░░██╔██║░░'
-Write-Host '░░████╔═████║░██║██║╚████║██║░░██║██║░░██║░░████╔═████║░░╚═══██╗  ╚═╝██║░░╚═╝██║░░'
-Write-Host '░░╚██╔╝░╚██╔╝░██║██║░╚███║██████╔╝╚█████╔╝░░╚██╔╝░╚██╔╝░██████╔╝  ███████╗███████╗'
-Write-Host '░░░╚═╝░░░╚═╝░░╚═╝╚═╝░░╚══╝╚═════╝░░╚════╝░░░░╚═╝░░░╚═╝░░╚═════╝░  ╚══════╝╚══════╝'
-Write-Host ''
-Write-Host '░█████╗░░█████╗░░█████╗░███████╗██╗░░░░░███████╗██████╗░░█████╗░████████╗░█████╗░██████╗░'
-Write-Host '██╔══██╗██╔══██╗██╔══██╗██╔════╝██║░░░░░██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗'
-Write-Host '███████║██║░░╚═╝██║░░╚═╝█████╗░░██║░░░░░█████╗░░██████╔╝███████║░░░██║░░░██║░░██║██████╔╝'
-Write-Host '██╔══██║██║░░██╗██║░░██╗██╔══╝░░██║░░░░░██╔══╝░░██╔══██╗██╔══██║░░░██║░░░██║░░██║██╔══██╗'
-Write-Host '██║░░██║╚█████╔╝╚█████╔╝███████╗███████╗███████╗██║░░██║██║░░██║░░░██║░░░╚█████╔╝██║░░██║'
-Write-Host '╚═╝░░╚═╝░╚════╝░░╚════╝░╚══════╝╚══════╝╚══════╝╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝'
-Write-Host ''
-Write-Host '                            By Nick Benton (@ennnbeee)'
-Write-Host '                                Version : 1.1.0'
-Write-Host
-Write-Host
 Write-Host
 Start-Sleep -Seconds $rndWait
 if ($deploy) {
@@ -644,10 +639,7 @@ if ($target -eq 'user') {
                     }
                 }
 "@
-
             }
-
-
         }
 
         If ($deploy) {
