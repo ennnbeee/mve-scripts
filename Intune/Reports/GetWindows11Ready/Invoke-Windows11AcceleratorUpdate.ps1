@@ -31,25 +31,28 @@ Choice of 1 to 15
 Select the whether you want to target the deployment to groups of users or groups of devices.
 Choice of Users or Devices.
 
+.PARAMETER demo
+Select whether you want to run the script in demo mode, with this switch it will not tag devices or users with their risk state.
+
+.PARAMETER rerun
+Run the script without warning prompts, used for continued running of the script.
+
 .PARAMETER scopes
 The scopes used to connect to the Graph API using PowerShell.
 Default scopes configured are:
 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
 
-.PARAMETER deploy
-Select whether you want to run the script, with this switch it will tag devices or users with their risk state, without it the script will run in report only mode.
-
 .INPUTS
-None. You can't pipe objects to Invoke-Windows11Accelerator.
+None. You can't pipe objects to Invoke-Windows11AcceleratorUpdate.ps1.
 
 .OUTPUTS
-None. Invoke-Windows11Accelerator doesn't generate any output.
+None. Invoke-Windows11AcceleratorUpdate.ps1 doesn't generate any output.
 
 .EXAMPLE
-PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target device -extensionAttribute 15
+PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target device -extensionAttribute 15 -demo
 
 .EXAMPLE
-PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target user -extensionAttribute 10
+PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target user -extensionAttribute 10 -rerun
 
 #>
 
@@ -60,17 +63,17 @@ param(
     [Parameter(Mandatory = $true)]
     [String]$tenantId,
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [String]$appId,
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [String]$appSecret,
 
     [Parameter(Mandatory = $true)]
     [ValidateSet('22H2', '23H2')]
     [String]$featureUpdateBuild = '23H2',
 
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $true)]
     [ValidateSet('user', 'device')]
     [String]$target = 'device',
 
@@ -79,7 +82,10 @@ param(
     [String]$extensionAttribute,
 
     [Parameter(Mandatory = $false)]
-    [Switch]$deploy,
+    [Switch]$demo,
+
+    [Parameter(Mandatory = $false)]
+    [Switch]$rerun,
 
     [Parameter(Mandatory = $false)]
     [String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All'
@@ -384,11 +390,6 @@ Function Get-ManagedDevices() {
 #endregion Functions
 
 #region testing
-$tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
-$appId = '297b3303-da1a-4e58-bdd2-b8d681d1bd71'
-$extensionAttribute = 10
-$target = 'user'
-$featureUpdateBuild = '23H2'
 #endregion testing
 
 #region app auth
@@ -433,14 +434,13 @@ $featureUpdateCreateCSVJSON = @"
 #region Intro
 Write-Host
 Start-Sleep -Seconds $rndWait
-if ($deploy) {
-    Write-Host "Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Red
-    Write-Host
+if ($demo) {
+    Write-Host "Starting the 'Get Ready for Windows 11' Script in demo mode..." -ForegroundColor Magenta
 }
 else {
-    Write-Host "Starting the 'Get Ready for Windows 11' Script in demo mode..." -ForegroundColor Magenta
-    Write-Host
+    Write-Host "Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Magenta
 }
+Write-Host
 Write-Host 'The script will carry out the following:' -ForegroundColor Green
 Write-Host "    - Capture all Windows Device or User objects from Entra ID, these are used for assigning an Extension Attribute ($extensionAttributeValue) used in the Dynamic Groups." -ForegroundColor White
 Write-Host "    - Start a Windows 11 Feature Update Readiness report for your selected build version of $featureUpdateBuild." -ForegroundColor White
@@ -456,7 +456,9 @@ Write-Host "    - High Risk: ($target.$extensionAttributeValue -eq"HighRisk-W11-
 Write-Host "    - Not Ready: ($target.$extensionAttributeValue -eq"NotReady-W11-$featureUpdateBuild")" -ForegroundColor White
 Write-Host "    - Unknown: ($target.$extensionAttributeValue -eq"Unknown-W11-$featureUpdateBuild")" -ForegroundColor White
 Write-Host
-Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
+if(!$rerun){
+    Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
+}
 #endregion Intro
 
 #region pre-flight
@@ -565,14 +567,16 @@ foreach ($csvReportDevice in $csvReportDevices) {
 }
 $reportArray = $reportArray | Sort-Object -Property ReadinessStatus -Descending
 
-Write-Host "Processed Windows 11 $featureUpdateBuild feature update readiness data for $($featureUpdateReport.TotalRowCount) devices." -ForegroundColor Green
+Write-Host "Processed Windows 11 $featureUpdateBuild feature update readiness data for $($csvReportDevices.Count) devices." -ForegroundColor Green
 Write-Host
 #endregion Feature Update Readiness
 
 #region Attributes
 Write-Host "Starting the assignment of risk based extension attributes to $extensionAttributeValue" -ForegroundColor Magenta
 Write-Host
-Write-Warning 'Please confirm you are happy to continue.' -WarningAction Inquire
+if (!$rerun){
+    Write-Warning 'Please confirm you are happy to continue.' -WarningAction Inquire
+}
 Write-Host
 Write-Host "Assigning the Risk attributes to $extensionAttributeValue..." -ForegroundColor cyan
 Write-Host
@@ -642,7 +646,7 @@ if ($target -eq 'user') {
             }
         }
 
-        If ($deploy) {
+        If (!$demo) {
             Add-ObjectAttribute -object User -Id $($userObject.userObjectID) -JSON $JSON
         }
         if ($($user.Group.ReadinessStatus) -eq 4) {
@@ -668,7 +672,7 @@ else {
 
         # Sleep to stop throttling issues
         Start-Sleep -Seconds $rndWait
-        If ($deploy) {
+        If (!$demo) {
             Add-ObjectAttribute -object Device -Id $device.deviceObjectID -JSON $JSON
         }
 
@@ -688,10 +692,7 @@ else {
         }
     }
 }
-
 Write-Host
 Write-Host "Completed the assignment of risk based extension attributes to $extensionAttributeValue" -ForegroundColor Green
 Write-Host
 #endregion  Attributes
-
-#Disconnect-MgGraph

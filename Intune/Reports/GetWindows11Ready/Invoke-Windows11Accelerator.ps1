@@ -390,7 +390,6 @@ $featureUpdateGetJSON = @'
 #region Intro
 Write-Host
 Start-Sleep -Seconds $rndWait
-Write-Host ('Connected to Tenant {0} as account {1}' -f $graphDetails.TenantId, $graphDetails.Account) -ForegroundColor Green
 Write-Host
 if ($deploy) {
     Write-Host "Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Red
