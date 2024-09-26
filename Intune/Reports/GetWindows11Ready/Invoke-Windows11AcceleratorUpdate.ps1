@@ -141,7 +141,6 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
             $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
             $accessToken = $response.access_token
 
-            $accessToken
             if ($version -eq 2) {
                 Write-Host 'Version 2 module detected'
                 $accesstokenfinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
@@ -393,7 +392,14 @@ Function Get-ManagedDevices() {
 #endregion testing
 
 #region app auth
-Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret
+if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
+    Write-host "Missing App Details, connecting using user authentication" -ForegroundColor Yellow
+    Connect-ToGraph -tenantId $tenantId
+}
+else {
+    Write-host "Connecting using App authentication" -ForegroundColor Yellow
+    Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret
+}
 #endregion app auth
 
 #region Variables
