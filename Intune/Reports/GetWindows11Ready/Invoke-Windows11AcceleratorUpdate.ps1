@@ -34,8 +34,8 @@ Choice of Users or Devices.
 .PARAMETER demo
 Select whether you want to run the script in demo mode, with this switch it will not tag devices or users with their risk state.
 
-.PARAMETER rerun
-Run the script without warning prompts, used for continued running of the script.
+.PARAMETER firstRun
+Run the script without with warning prompts, used for continued running of the script.
 
 .PARAMETER scopes
 The scopes used to connect to the Graph API using PowerShell.
@@ -52,7 +52,7 @@ None. Invoke-Windows11AcceleratorUpdate.ps1 doesn't generate any output.
 PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target device -extensionAttribute 15 -demo
 
 .EXAMPLE
-PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target user -extensionAttribute 10 -rerun
+PS> .\Invoke-Windows11AcceleratorUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -appId 297b3303-da1a-4e58-bdd2-b8d681d1bd71 -appSecret g5m8Q~CSedPeRoee4Ld9Uvg2FhR_0Hy7kUpRIbo -featureUpdateBuild 23H2 -target user -extensionAttribute 10 -firstRun $true
 
 #>
 
@@ -84,11 +84,11 @@ param(
     [Parameter(Mandatory = $false)]
     [String]$scopeTag = 'default',
 
-    [Parameter(Mandatory = $false)]
-    [Switch]$demo,
+    [Parameter(Mandatory = $true)]
+    [boolean]$firstRun = $true,
 
     [Parameter(Mandatory = $false)]
-    [Switch]$rerun,
+    [Switch]$demo,
 
     [Parameter(Mandatory = $false)]
     [String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All,DeviceManagementRBAC.Read.All'
@@ -418,6 +418,7 @@ $scopeTag = 'default'
 $featureUpdateBuild = '23H2'
 $extensionAttribute = 11
 $demo = $true
+$firstRun = $false
 $target = 'user'
 $tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
 $appId = '297b3303-da1a-4e58-bdd2-b8d681d1bd71'
@@ -446,7 +447,7 @@ $featureUpdate = Switch ($featureUpdateBuild) {
     '24H2' { 'NI24H2' }
 }
 
-#scope tags
+#region scope tags
 if ($scopeTag -ne 'default') {
     Get-ScopeTags | ForEach-Object {
         if ($_.displayName -eq $scopeTag) {
@@ -461,6 +462,7 @@ if ($scopeTag -ne 'default') {
 else {
     $scopeTagId = '00000'
 }
+#endregion scope tags
 
 $featureUpdateCreateCSVJSON = @"
 {
@@ -484,7 +486,6 @@ $featureUpdateCreateCSVJSON = @"
     "snapshotId": "MEMUpgradeReadinessDevice_00000000-0000-0000-0000-000000000001"
 }
 "@
-
 #endregion Variables
 
 #region Intro
@@ -503,7 +504,7 @@ Write-Host "    - Start a Windows 11 Feature Update Readiness report for your se
 Write-Host "    - Capture and process the outcome of the Windows 11 Feature Update Readiness report for build version $featureUpdateBuild" -ForegroundColor White
 Write-Host "    - Based on the Risk level for the device, will assign a risk based flag to the Primary User or Device using Extension Attribute $extensionAttributeValue" -ForegroundColor White
 Write-Host
-Write-Host 'The script can be run multiple times, as the Extension Attributes are overwritten with each run.' -ForegroundColor Cyan
+Write-Host 'The script can be run multiple times, as the Extension Attributes are overwritten if changed with each run.' -ForegroundColor Cyan
 Write-Host
 Write-Host "Before proceding with the running of the script, please create Entra ID Dynamic $target Groups for each of the below risk levels, using the provided rule:" -ForegroundColor Green
 Write-Host "    - Low Risk: ($target.$extensionAttributeValue -eq"LowRisk-W11-$featureUpdateBuild")" -ForegroundColor White
@@ -512,7 +513,7 @@ Write-Host "    - High Risk: ($target.$extensionAttributeValue -eq"HighRisk-W11-
 Write-Host "    - Not Ready: ($target.$extensionAttributeValue -eq"NotReady-W11-$featureUpdateBuild")" -ForegroundColor White
 Write-Host "    - Unknown: ($target.$extensionAttributeValue -eq"Unknown-W11-$featureUpdateBuild")" -ForegroundColor White
 Write-Host
-if (!$rerun) {
+if ($firstRun -eq $true) {
     Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
 }
 #endregion Intro
@@ -608,6 +609,13 @@ foreach ($csvReportDevice in $csvReportDevices) {
         '5' { "Unknown-W11-$featureUpdateBuild" }
     }
 
+    if ($target -eq 'user') {
+        $extensionExisting = $(($extArray | Where-Object { $_.Id -eq $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userId) }).$extensionAttributeValue)
+    }
+    else {
+        $extensionExisting = $(($extArray | Where-Object { $_.Id -eq $($csvReportDevice.AadDeviceId) }).$extensionAttributeValue)
+    }
+
     $reportArray += [PSCustomObject]@{
         'AadDeviceId'              = $csvReportDevice.AadDeviceId
         'AppIssuesCount'           = $csvReportDevice.AppIssuesCount
@@ -625,7 +633,7 @@ foreach ($csvReportDevice in $csvReportDevices) {
         'deviceObjectID'           = $(($entraDevices | Where-Object { $_.deviceid -eq $($csvReportDevice.AadDeviceId) }).id)
         'userObjectID'             = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userId)
         'userPrincipalName'        = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userPrincipalName)
-        "$extensionAttributeValue" = $(($extArray | Where-Object { $_.Id -eq $($csvReportDevice.AadDeviceId) }).$extensionAttributeValue)
+        "$extensionAttributeValue" = $extensionExisting
     }
 }
 $reportArray = $reportArray | Sort-Object -Property ReadinessStatus -Descending
@@ -637,7 +645,7 @@ Write-Host
 #region Attributes
 Write-Host "Starting the assignment of risk based extension attributes to $extensionAttributeValue" -ForegroundColor Magenta
 Write-Host
-if (!$rerun) {
+if ($firstRun -eq $true) {
     Write-Warning 'Please confirm you are happy to continue.' -WarningAction Inquire
 }
 Write-Host
@@ -650,47 +658,14 @@ if ($target -eq 'user') {
 
     foreach ( $user in $userReportArray ) {
 
-        Start-Sleep -Seconds $rndWait
         # one device for a user
         if ($user.count -eq 1) {
             $userObject = $user.Group
-            $riskColour = switch ($($userObject.ReadinessStatus)) {
-                '0' { 'Green' }
-                '1' { 'Yellow' }
-                '2' { 'Red' }
-                '3' { 'Red' }
-                '4' { 'Cyan' }
-                '5' { 'Magenta' }
-            }
-
-            $JSON = @"
-            {
-                "$extAttribute": {
-                    "$extensionAttributeValue": "$($userObject.RiskState)"
-                }
-            }
-"@
-        }
-        # Multiple devices for a user
-        else {
-            $userObject = $user.Group
-            # All user devices at Windows 11
-            if (($userObject.ReadinessStatus | Measure-Object -Sum).Sum / $user.count -eq 4) {
-                # Only need one device object as they're all Windows 11
-                $userObject = $user.Group | Select-Object -First 1
-                $riskColour = 'Cyan'
-                $JSON = @"
-                {
-                    "$extAttribute": {
-                        "$extensionAttributeValue": "$($userObject.RiskState)"
-                    }
-                }
-"@
+            if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
+                $riskColour = 'cyan'
+                Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
             }
             else {
-                # Gets readiness state where not updated to Windows 11, selects highest risk number
-                $highestRisk = ($user.Group | Where-Object { $_.ReadinessStatus -ne 4 } | Measure-Object -Property ReadinessStatus -Maximum).Maximum
-                $userObject = ($user.Group | Where-Object { $_.ReadinessStatus -eq $highestRisk } | Select-Object -First 1)
                 $riskColour = switch ($($userObject.ReadinessStatus)) {
                     '0' { 'Green' }
                     '1' { 'Yellow' }
@@ -699,6 +674,7 @@ if ($target -eq 'user') {
                     '4' { 'Cyan' }
                     '5' { 'Magenta' }
                 }
+
                 $JSON = @"
                 {
                     "$extAttribute": {
@@ -708,8 +684,61 @@ if ($target -eq 'user') {
 "@
             }
         }
+        # Multiple devices for a user
+        else {
+            $userObject = $user.Group
+            # All user devices at Windows 11
+            if (($userObject.ReadinessStatus | Measure-Object -Sum).Sum / $user.count -eq 4) {
+                # Only need one device object as they're all Windows 11
+                $userObject = $user.Group | Select-Object -First 1
+
+                if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
+                    $riskColour = 'cyan'
+                    Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
+                }
+                else {
+                    $riskColour = 'Cyan'
+                    $JSON = @"
+                    {
+                        "$extAttribute": {
+                            "$extensionAttributeValue": "$($userObject.RiskState)"
+                        }
+                    }
+"@
+                }
+
+            }
+            else {
+                # Gets readiness state where not updated to Windows 11, selects highest risk number
+                $highestRisk = ($user.Group | Where-Object { $_.ReadinessStatus -ne 4 } | Measure-Object -Property ReadinessStatus -Maximum).Maximum
+                $userObject = ($user.Group | Where-Object { $_.ReadinessStatus -eq $highestRisk } | Select-Object -First 1)
+
+                if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
+                    $riskColour = 'cyan'
+                    Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
+                }
+                else {
+                    $riskColour = switch ($($userObject.ReadinessStatus)) {
+                        '0' { 'Green' }
+                        '1' { 'Yellow' }
+                        '2' { 'Red' }
+                        '3' { 'Red' }
+                        '4' { 'Cyan' }
+                        '5' { 'Magenta' }
+                    }
+                    $JSON = @"
+                    {
+                        "$extAttribute": {
+                            "$extensionAttributeValue": "$($userObject.RiskState)"
+                        }
+                    }
+"@
+                }
+            }
+        }
 
         If (!$demo) {
+            Start-Sleep -Seconds $rndWait
             Add-ObjectAttribute -object User -Id $($userObject.userObjectID) -JSON $JSON
         }
         if ($($user.Group.ReadinessStatus) -eq 4) {
@@ -738,8 +767,8 @@ else {
 "@
 
             # Sleep to stop throttling issues
-            Start-Sleep -Seconds $rndWait
             If (!$demo) {
+                Start-Sleep -Seconds $rndWait
                 Add-ObjectAttribute -object Device -Id $device.deviceObjectID -JSON $JSON
             }
 
@@ -764,6 +793,3 @@ Write-Host
 Write-Host "Completed the assignment of risk based extension attributes to $extensionAttributeValue" -ForegroundColor Green
 Write-Host
 #endregion  Attributes
-
-
-#WORKING FOR DEVICES NEED TO WORK OUT EXISTING ATTRIBUTES FOR USERS
