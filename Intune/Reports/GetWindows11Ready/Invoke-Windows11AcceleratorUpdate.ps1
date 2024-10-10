@@ -92,7 +92,6 @@ param(
 
     [Parameter(Mandatory = $false)]
     [String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All,DeviceManagementRBAC.Read.All'
-
 )
 
 #region Functions
@@ -126,7 +125,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
         [Parameter(Mandatory = $false)] [string]$tenantId,
         [Parameter(Mandatory = $false)] [string]$appId,
         [Parameter(Mandatory = $false)] [string]$appSecret,
-        [Parameter(Mandatory = $false)] [string]$scopes
+        [Parameter(Mandatory = $false)] [string[]]$scopes
     )
 
     Process {
@@ -164,7 +163,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
                 Write-Host 'Version 1 Module Detected'
                 Select-MgProfile -Name Beta
             }
-            $graph = Connect-MgGraph -Scopes $scopes
+            $graph = Connect-MgGraph -Scopes $scopes -TenantId $tenantId
             Write-Host "Connected to Intune tenant $($graph.TenantId)"
         }
     }
@@ -330,22 +329,22 @@ Function Get-EntraIDObject() {
     try {
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource"
-        $GraphResults = Invoke-MgGraphRequest -Uri $uri -Method Get
+        $graphResults = Invoke-MgGraphRequest -Uri $uri -Method Get
 
-        $Results = @()
-        $Results += $GraphResults.value
+        $results = @()
+        $results += $graphResults.value
 
-        $Pages = $GraphResults.'@odata.nextLink'
-        while ($null -ne $Pages) {
+        $pages = $graphResults.'@odata.nextLink'
+        while ($null -ne $pages) {
 
-            $Additional = Invoke-MgGraphRequest -Uri $Pages -Method Get
+            $additional = Invoke-MgGraphRequest -Uri $pages -Method Get
 
-            if ($Pages) {
-                $Pages = $Additional.'@odata.nextLink'
+            if ($pages) {
+                $pages = $additional.'@odata.nextLink'
             }
-            $Results += $Additional.value
+            $results += $additional.value
         }
-        $Results
+        $results
     }
     catch {
         Write-Error $Error[0].ErrorDetails.Message
@@ -366,22 +365,22 @@ Function Get-ManagedDevices() {
     try {
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource"
-        $GraphResults = Invoke-MgGraphRequest -Uri $uri -Method Get
+        $graphResults = Invoke-MgGraphRequest -Uri $uri -Method Get
 
-        $Results = @()
-        $Results += $GraphResults.value
+        $results = @()
+        $results += $graphResults.value
 
-        $Pages = $GraphResults.'@odata.nextLink'
-        while ($null -ne $Pages) {
+        $pages = $graphResults.'@odata.nextLink'
+        while ($null -ne $pages) {
 
-            $Additional = Invoke-MgGraphRequest -Uri $Pages -Method Get
+            $additional = Invoke-MgGraphRequest -Uri $pages -Method Get
 
-            if ($Pages) {
-                $Pages = $Additional.'@odata.nextLink'
+            if ($pages) {
+                $pages = $additional.'@odata.nextLink'
             }
-            $Results += $Additional.value
+            $results += $additional.value
         }
-        $Results
+        $results
     }
     catch {
         Write-Error $Error[0].ErrorDetails.Message
@@ -413,23 +412,31 @@ Function Get-ScopeTags() {
 
 #endregion Functions
 
-#region testing
+<#region testing
+[String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All,DeviceManagementRBAC.Read.All'
 $scopeTag = 'default'
 $featureUpdateBuild = '23H2'
-$extensionAttribute = 11
+$extensionAttribute = 10
 $demo = $true
-$firstRun = $false
-$target = 'user'
-$tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
-$appId = '297b3303-da1a-4e58-bdd2-b8d681d1bd71'
-$appSecret = ''
-[String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All,DeviceManagementRBAC.Read.All'
+$firstRun = $true
+$target = 'user'#>
+
 #endregion testing
 
 #region app auth
+Import-Module Microsoft.Graph.Authentication
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
+    Disconnect-MgGraph
+}
 if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
     Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
-    Connect-ToGraph -tenantId $tenantId
+    Connect-ToGraph -tenantId $tenantId -Scopes $scopes
+    $existingScopes = (Get-MgContext).Scopes
+    Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+    Disconnect-MgGraph
+    Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+    Connect-ToGraph -tenantId $tenantId -Scopes $existingScopes
 }
 else {
     Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
@@ -464,7 +471,7 @@ else {
 }
 #endregion scope tags
 
-$featureUpdateCreateCSVJSON = @"
+$featureUpdateCreate = @"
 {
     "reportName": "MEMUpgradeReadinessDevice",
     "filter": "(TargetOS eq '$featureUpdate') and (DeviceScopesTag eq '$scopeTagId')",
@@ -524,15 +531,30 @@ if ($target -eq 'user') {
     Write-Host 'Getting user objects and associated IDs from Entra ID...' -ForegroundColor Cyan
     $entraUsers = Get-EntraIDObject -object User | Where-Object { $_.accountEnabled -eq 'true' -and $_.userType -eq 'Member' }
     Write-Host "Found $($entraUsers.Count) user objects and associated IDs from Entra ID." -ForegroundColor Green
+    #optimising the entra user data
+    $optEntraUsers = @{}
+    foreach ($itemEntraUser in $entraUsers) {
+        $optEntraUsers[$itemEntraUser.id] = $itemEntraUser
+    }
     Write-Host
     Write-Host 'Getting device objects and associated IDs from Microsoft Intune...' -ForegroundColor Cyan
     $intuneDevices = Get-ManagedDevices | Where-Object { $_.operatingSystem -eq 'Windows' }
+    #optimising the intune device data
+    $optIntuneDevices = @{}
+    foreach ($itemIntuneDevice in $intuneDevices) {
+        $optIntuneDevices[$itemIntuneDevice.azureADDeviceId] = $itemIntuneDevice
+    }
     Write-Host "Found $($intuneDevices.Count) device objects and associated IDs from Microsoft Intune." -ForegroundColor Green
     Write-Host
 }
 Write-Host 'Getting device objects and associated IDs from Entra ID...' -ForegroundColor Cyan
 $entraDevices = Get-EntraIDObject -object Device | Where-Object { $_.operatingSystem -eq 'Windows' }
 Write-Host "Found $($entraDevices.Count) Windows devices and associated IDs from Entra ID." -ForegroundColor Green
+#optimising the entra device data
+$optEntraDevices = @{}
+foreach ($itemEntraDevice in $entraDevices) {
+    $optEntraDevices[$itemEntraDevice.deviceid] = $itemEntraDevice
+}
 Write-Host
 Write-Host "Checking for existing data in attribute $extensionAttributeValue in Entra ID..." -ForegroundColor Cyan
 $attributeErrors = 0
@@ -548,16 +570,10 @@ $extAttribute = switch ($target) {
     'device' { 'extensionAttributes' }
 }
 
-$extArray = @()
+
 foreach ($entraObject in $entraObjects) {
 
     $attribute = ($entraObject.$extAttribute | ConvertTo-Json | ConvertFrom-Json).$extensionAttributeValue
-
-    $extArray += [PSCustomObject]@{
-        'Id'                       = $entraObject.id
-        "$extensionAttributeValue" = $attribute
-    }
-
     if ($attribute -notin $safeAttributes) {
         if ($null -ne $attribute) {
             Write-Host "$($entraObject.displayName) already has a value of '$attribute' configured in $extensionAttributeValue" -ForegroundColor Yellow
@@ -566,6 +582,7 @@ foreach ($entraObject in $entraObjects) {
     }
 }
 if ($attributeErrors -gt 0) {
+    Write-Host
     Write-Host "Please review the objects reporting as having existing data in the selected attribute $extensionAttributeValue." -ForegroundColor Red
     Write-Warning "If you are happy to overwrite $extensionAttributeValue please continue, otherwise stop the script." -WarningAction Inquire
 }
@@ -577,18 +594,17 @@ Write-Host
 Write-Host "Starting the Feature Update Readiness Report for Windows 11 $featureUpdateBuild with scope tag $scopeTag..." -ForegroundColor Magenta
 Write-Host
 
-$startFeatureUpdateReport = New-ReportFeatureUpdateReadiness -JSON $featureUpdateCreateCSVJSON -csv
-While ((Get-ReportFeatureUpdateReadiness -Id $startFeatureUpdateReport.id -csv).status -ne 'completed') {
+$reatureUpdateReport = New-ReportFeatureUpdateReadiness -JSON $featureUpdateCreate -csv
+While ((Get-ReportFeatureUpdateReadiness -Id $reatureUpdateReport.id -csv).status -ne 'completed') {
     Write-Host 'Waiting for the Feature Update report to finish processing...' -ForegroundColor Cyan
     Start-Sleep -Seconds $rndWait
-
 }
 
 Write-Host "Windows 11 $featureUpdateBuild feature update readiness completed processing." -ForegroundColor Green
 Write-Host
 Write-Host "Getting Windows 11 $featureUpdateBuild feature update readiness Report data..." -ForegroundColor Magenta
 Write-Host
-$csvURL = (Get-ReportFeatureUpdateReadiness -Id $startFeatureUpdateReport.id -csv).url
+$csvURL = (Get-ReportFeatureUpdateReadiness -Id $reatureUpdateReport.id -csv).url
 
 $csvHeader = @{Accept = '*/*'; 'accept-encoding' = 'gzip, deflate, br, zstd' }
 Add-Type -AssemblyName System.IO.Compression
@@ -597,6 +613,8 @@ $csvReportZip = [System.IO.Compression.ZipArchive]::new([System.IO.MemoryStream]
 $csvReportDevices = [System.IO.StreamReader]::new($csvReportZip.GetEntry($csvReportZip.Entries[0]).open()).ReadToEnd() | ConvertFrom-Csv
 
 Write-Host "Found Feature Update Report Details for $($csvReportDevices.Count) devices." -ForegroundColor Green
+Write-Host
+Write-Host "Processing Windows 11 $featureUpdateBuild feature update readiness Report data for $($csvReportDevices.Count) devices..." -ForegroundColor Magenta
 
 $reportArray = @()
 foreach ($csvReportDevice in $csvReportDevices) {
@@ -610,33 +628,71 @@ foreach ($csvReportDevice in $csvReportDevices) {
     }
 
     if ($target -eq 'user') {
-        $extensionExisting = $(($extArray | Where-Object { $_.Id -eq $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userId) }).$extensionAttributeValue)
+
+        if ($null -ne $csvReportDevice.AadDeviceId) {
+            $userObject = $optIntuneDevices[$csvReportDevice.AadDeviceId]
+
+            if ($null -ne $userObject.userId) {
+                $userEntraObject = $optEntraUsers[$userObject.userId]
+            }
+            else {
+                $userEntraObject = $null
+            }
+        }
+        else {
+            $userObject = $null
+            $userEntraObject = $null
+        }
+
+        $reportArray += [PSCustomObject]@{
+            'AadDeviceId'              = $csvReportDevice.AadDeviceId
+            'AppIssuesCount'           = $csvReportDevice.AppIssuesCount
+            'AppOtherIssuesCount'      = $csvReportDevice.AppOtherIssuesCount
+            'DeviceId'                 = $csvReportDevice.DeviceId
+            'DeviceManufacturer'       = $csvReportDevice.DeviceManufacturer
+            'DeviceModel'              = $csvReportDevice.DeviceModel
+            'DeviceName'               = $csvReportDevice.DeviceName
+            'DriverIssuesCount'        = $csvReportDevice.DriverIssuesCount
+            'OSVersion'                = $csvReportDevice.OSVersion
+            'Ownership'                = $csvReportDevice.Ownership
+            'ReadinessStatus'          = $csvReportDevice.ReadinessStatus
+            'SystemRequirements'       = $csvReportDevice.SystemRequirements
+            'RiskState'                = $riskState
+            'userObjectID'             = $userObject.userId
+            'userPrincipalName'        = $userObject.userPrincipalName
+            "$extensionAttributeValue" = $userEntraObject.onPremisesExtensionAttributes.$extensionAttributeValue
+        }
+
     }
     else {
-        $extensionExisting = $(($extArray | Where-Object { $_.Id -eq $($csvReportDevice.AadDeviceId) }).$extensionAttributeValue)
-    }
 
-    $reportArray += [PSCustomObject]@{
-        'AadDeviceId'              = $csvReportDevice.AadDeviceId
-        'AppIssuesCount'           = $csvReportDevice.AppIssuesCount
-        'AppOtherIssuesCount'      = $csvReportDevice.AppOtherIssuesCount
-        'DeviceId'                 = $csvReportDevice.DeviceId
-        'DeviceManufacturer'       = $csvReportDevice.DeviceManufacturer
-        'DeviceModel'              = $csvReportDevice.DeviceModel
-        'DeviceName'               = $csvReportDevice.DeviceName
-        'DriverIssuesCount'        = $csvReportDevice.DriverIssuesCount
-        'OSVersion'                = $csvReportDevice.OSVersion
-        'Ownership'                = $csvReportDevice.Ownership
-        'ReadinessStatus'          = $csvReportDevice.ReadinessStatus
-        'SystemRequirements'       = $csvReportDevice.SystemRequirements
-        'RiskState'                = $riskState
-        'deviceObjectID'           = $(($entraDevices | Where-Object { $_.deviceid -eq $($csvReportDevice.AadDeviceId) }).id)
-        'userObjectID'             = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userId)
-        'userPrincipalName'        = $(($intuneDevices | Where-Object { $_.azureActiveDirectoryDeviceId -eq $($csvReportDevice.AadDeviceId) }).userPrincipalName)
-        "$extensionAttributeValue" = $extensionExisting
+        if ($null -ne $csvReportDevice.AadDeviceId) {
+            $deviceObject = $optEntraDevices[$csvReportDevice.AadDeviceId]
+        }
+        else {
+            $deviceObject = $null
+        }
+
+        $reportArray += [PSCustomObject]@{
+            'AadDeviceId'              = $csvReportDevice.AadDeviceId
+            'AppIssuesCount'           = $csvReportDevice.AppIssuesCount
+            'AppOtherIssuesCount'      = $csvReportDevice.AppOtherIssuesCount
+            'DeviceId'                 = $csvReportDevice.DeviceId
+            'DeviceManufacturer'       = $csvReportDevice.DeviceManufacturer
+            'DeviceModel'              = $csvReportDevice.DeviceModel
+            'DeviceName'               = $csvReportDevice.DeviceName
+            'DriverIssuesCount'        = $csvReportDevice.DriverIssuesCount
+            'OSVersion'                = $csvReportDevice.OSVersion
+            'Ownership'                = $csvReportDevice.Ownership
+            'ReadinessStatus'          = $csvReportDevice.ReadinessStatus
+            'SystemRequirements'       = $csvReportDevice.SystemRequirements
+            'RiskState'                = $riskState
+            'deviceObjectID'           = $deviceObject.id
+            "$extensionAttributeValue" = $deviceObject.extensionAttributes.$extensionAttributeValue
+        }
     }
 }
-$reportArray = $reportArray | Sort-Object -Property ReadinessStatus -Descending
+$reportArray = $reportArray | Sort-Object -Property ReadinessStatus
 
 Write-Host "Processed Windows 11 $featureUpdateBuild feature update readiness data for $($csvReportDevices.Count) devices." -ForegroundColor Green
 Write-Host
@@ -658,9 +714,33 @@ if ($target -eq 'user') {
 
     foreach ( $user in $userReportArray ) {
 
-        # one device for a user
-        if ($user.count -eq 1) {
-            $userObject = $user.Group
+        $userObject = $user.Group
+        # All user devices at Windows 11
+        if (($userObject.ReadinessStatus | Measure-Object -Sum).Sum / $user.count -eq 4) {
+            # Only need one device object as they're all Windows 11
+            $userObject = $user.Group | Select-Object -First 1
+
+            if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
+                $riskColour = 'cyan'
+                Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
+            }
+            else {
+                $riskColour = 'Cyan'
+                $JSON = @"
+                    {
+                        "$extAttribute": {
+                            "$extensionAttributeValue": "$($userObject.RiskState)"
+                        }
+                    }
+"@
+            }
+
+        }
+        else {
+            # Gets readiness state where not updated to Windows 11, selects highest risk number
+            $highestRisk = ($userObject | Where-Object { $_.ReadinessStatus -ne 4 } | Measure-Object -Property ReadinessStatus -Maximum).Maximum
+            $userObject = ($userObject | Where-Object { $_.ReadinessStatus -eq $highestRisk } | Select-Object -First 1)
+
             if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
                 $riskColour = 'cyan'
                 Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
@@ -674,66 +754,13 @@ if ($target -eq 'user') {
                     '4' { 'Cyan' }
                     '5' { 'Magenta' }
                 }
-
                 $JSON = @"
-                {
-                    "$extAttribute": {
-                        "$extensionAttributeValue": "$($userObject.RiskState)"
-                    }
-                }
-"@
-            }
-        }
-        # Multiple devices for a user
-        else {
-            $userObject = $user.Group
-            # All user devices at Windows 11
-            if (($userObject.ReadinessStatus | Measure-Object -Sum).Sum / $user.count -eq 4) {
-                # Only need one device object as they're all Windows 11
-                $userObject = $user.Group | Select-Object -First 1
-
-                if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
-                    $riskColour = 'cyan'
-                    Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
-                }
-                else {
-                    $riskColour = 'Cyan'
-                    $JSON = @"
                     {
                         "$extAttribute": {
                             "$extensionAttributeValue": "$($userObject.RiskState)"
                         }
                     }
 "@
-                }
-
-            }
-            else {
-                # Gets readiness state where not updated to Windows 11, selects highest risk number
-                $highestRisk = ($user.Group | Where-Object { $_.ReadinessStatus -ne 4 } | Measure-Object -Property ReadinessStatus -Maximum).Maximum
-                $userObject = ($user.Group | Where-Object { $_.ReadinessStatus -eq $highestRisk } | Select-Object -First 1)
-
-                if ($userObject.$extensionAttributeValue -eq $userObject.RiskState) {
-                    $riskColour = 'cyan'
-                    Write-Host "$($userObject.userPrincipalName) risk tag hasn't changed for Windows 11 $featureUpdateBuild" -ForegroundColor White
-                }
-                else {
-                    $riskColour = switch ($($userObject.ReadinessStatus)) {
-                        '0' { 'Green' }
-                        '1' { 'Yellow' }
-                        '2' { 'Red' }
-                        '3' { 'Red' }
-                        '4' { 'Cyan' }
-                        '5' { 'Magenta' }
-                    }
-                    $JSON = @"
-                    {
-                        "$extAttribute": {
-                            "$extensionAttributeValue": "$($userObject.RiskState)"
-                        }
-                    }
-"@
-                }
             }
         }
 
@@ -747,9 +774,10 @@ if ($target -eq 'user') {
         else {
             Write-Host "$($userObject.userPrincipalName) assigned risk tag $($userObject.RiskState) to $extensionAttributeValue for Windows 11 $featureUpdateBuild" -ForegroundColor $riskColour
         }
-
     }
+
 }
+
 # devices
 else {
     Foreach ($device in $reportArray) {
@@ -792,4 +820,4 @@ else {
 Write-Host
 Write-Host "Completed the assignment of risk based extension attributes to $extensionAttributeValue" -ForegroundColor Green
 Write-Host
-#endregion  Attributes
+#endregion Attributes
