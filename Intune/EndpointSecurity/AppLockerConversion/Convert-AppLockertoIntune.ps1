@@ -3,34 +3,27 @@
 param(
 
     [Parameter(Mandatory = $true)]
+    [String]$tenantId,
+
+    [Parameter(Mandatory = $true)]
     [String]$xmlPath,
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Enforce', 'Audit')]
-    [string]$enforce,
-
-    [Parameter(Mandatory = $true)]
-    [boolean]$upload,
-
-    [Parameter(Mandatory = $false)]
     [string]$displayName,
 
-    [Parameter(Mandatory = $false)]
-    [string]$policyName = 'Baseline',
+    [Parameter(Mandatory = $true)]
+    [string]$grouping,
 
-    [Parameter(Mandatory = $false)]
-    [String]$tenantId
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Enforce', 'Audit')]
+    [string]$enforcement
+
 
 )
 
 #region variables
-$upload = $true
-$enforce = 'Audit'
-$displayName = 'WIN_DEV_COPE_AppLocker_Upload'
-$xmlPath = 'C:\Source\github\AaronLocker\AaronLocker\Outputs\AppLockerRules-20241014-1101-Audit.xml'
 $encoding = 'UTF-8'
 [String[]]$scopes = 'DeviceManagementConfiguration.ReadWrite.All'
-
 #endregion variables
 
 #region functions
@@ -154,31 +147,24 @@ Function New-CustomProfile() {
 #endregion functions
 
 #region authentication
-if ($upload -eq $true) {
-    if (!$tenantId) {
-        $tenantId = Read-Host 'Please enter in the Entra ID Tenant ID'
-
-    }
-    Import-Module Microsoft.Graph.Authentication
-    if (Get-MgContext) {
-        Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
-        Disconnect-MgGraph
-    }
-    Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-    Connect-ToGraph -tenantId $tenantId -Scopes $scopes
-    $existingScopes = (Get-MgContext).Scopes
-    Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+Import-Module Microsoft.Graph.Authentication
+if (Get-MgContext) {
+    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
     Disconnect-MgGraph
-    Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-    Connect-ToGraph -tenantId $tenantId -Scopes $existingScopes
 }
+Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+Connect-ToGraph -tenantId $tenantId -Scopes $scopes
+$existingScopes = (Get-MgContext).Scopes
+Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+Disconnect-MgGraph
+Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+Connect-ToGraph -tenantId $tenantId -Scopes $existingScopes
 #endregion authentication
 
-while (!(Test-Path -Path $xmlPath -PathType Leaf)) {
-    $xmlPath = Read-Host 'Please enter the path to the AppLocker XML file'
-}
-
 Try {
+    while (!(Test-Path -Path $xmlPath -PathType Leaf)) {
+        $xmlPath = Read-Host 'Please enter the path to the AppLocker XML file'
+    }
     $dateTime = Get-Date -Format yyyyMMdd-HHmm
     $objectAppLocker = New-Object -TypeName psobject
     $omaSettings = @()
@@ -194,11 +180,12 @@ Try {
 
     [xml]$xmlDoc = Get-Content $xmlFile
     $ruleCollections = $xmlDoc.ChildNodes.RuleCollection
+
     foreach ($ruleCollection in $ruleCollections) {
         $objectAppLockerSettings = New-Object -TypeName psobject
         # Sets enforcement mode
         if ($null -ne $ruleCollection.EnforcementMode) {
-            if ($enforceMode -eq 'enforce') {
+            if ($enforcement -eq 'Enforce') {
                 $ruleCollection.EnforcementMode = 'Enforce'
             }
             else {
@@ -216,43 +203,35 @@ Try {
                     'Script' { 'Script' }
                 }
 
-                $xmlDocIntuneSetting = "$($xmlFile.Directory.FullName)\$appLockerType-$($xmlFile.BaseName).xml"
-                $xmlIntuneSetting.Save($xmlDocIntuneSetting)
-                Write-Host "AppLocker settings for $appLockerType have been written to $xmlDocIntuneSetting" -ForegroundColor Green
+                [string]$omaUriValue = $xmlIntuneSetting.RuleCollection.OuterXml
+                $omaUri = "./Vendor/MSFT/AppLocker/ApplicationLaunchRestrictions/$grouping/$appLockerType/Policy"
 
-                if ($upload -eq $true) {
-                    [xml]$xmlDocIntunePartial = Get-Content $xmlDocIntuneSetting
-                    [string]$omaUriValue = $xmlDocIntunePartial.RuleCollection.OuterXml
-                    $omaUri = "./Vendor/MSFT/AppLocker/ApplicationLaunchRestrictions/$policyName/$appLockerType/Policy"
-                    $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value 'microsoft.graph.omaSettingString'
-                    $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $appLockerType
-                    $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'description' -Value $enforce
-                    $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'omaUri' -Value $omaUri
-                    $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'value' -Value $omaUrivalue
-                    $omaSettings += $objectAppLockerSettings
-                }
+                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value 'microsoft.graph.omaSettingString'
+                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $appLockerType
+                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'description' -Value $enforce
+                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'omaUri' -Value $omaUri
+                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'value' -Value $omaUrivalue
+                $omaSettings += $objectAppLockerSettings
 
-            }
-            else {
-                Write-Host 'help' -ForegroundColor Red
             }
         }
     }
-    if ($upload -eq $true) {
-        while (!$displayName) {
-            $displayName = Read-Host 'Please enter a name for the AppLocker profile in Intune'
-        }
-        $name = $displayName + '-' + $dateTime
-        $objectAppLocker | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.windows10CustomConfiguration'
-        $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $name
-        $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'description' -Value $name
-        $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'omaSettings' -Value @($omaSettings)
 
-        $appLockerJSON = $objectAppLocker | ConvertTo-Json -Depth 5
-        New-CustomProfile -JSON $appLockerJSON
-    }
+    $name = $displayName + '-' + $dateTime
+    # creates the object with the rules
+    $objectAppLocker | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.windows10CustomConfiguration'
+    $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $name
+    $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'description' -Value $null
+    $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'omaSettings' -Value @($omaSettings)
+
+    $appLockerJSON = $objectAppLocker | ConvertTo-Json -Depth 5
+    Write-Host "Creating AppLocker Custom Profile $name in Intune" -ForegroundColor Cyan
+    New-CustomProfile -JSON $appLockerJSON
+    Write-Host "Created AppLocker Custom Profile $name in Intune" -ForegroundColor Green
+
 }
 Catch {
-    Write-Host 'help' -ForegroundColor Red
+    Write-Error $Error[0].ErrorDetails.Message
+    Exit 1
 }
 
