@@ -1,5 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
-<AppLockerPolicy Version="1">
+﻿<AppLockerPolicy Version="1">
   <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
     <FilePathRule Id="fd686d83-a829-4351-8ff4-27c7de5755d2" Name="(Default Rule) All files" Description="Allows members of the local Administrators group to run all applications." UserOrGroupSid="S-1-5-32-544" Action="Allow">
       <Conditions>

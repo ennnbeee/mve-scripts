@@ -1,3 +1,41 @@
+<#
+.SYNOPSIS
+
+.DESCRIPTION
+Takes an exported AppLocker policy from XML and creates an Intune custom profile with the corresponding settings.
+
+.PARAMETER tenantId
+Provide the Id of the tenant to connecto to.
+
+.PARAMETER xmlPath
+Path to the XML exported AppLocker policy.
+
+.PARAMETER displayName
+Name of the policy to be created in Intune.
+
+.PARAMETER grouping
+Name grouping setting for the AppLocker policies.
+
+.PARAMETER enforcement
+Configures the AppLocker policy to be in audit or enforce.
+Valid set is 'Enforce', 'Audit'
+
+.INPUTS
+None. You can't pipe objects to Convert-AppLockertoIntune.ps1.
+
+.OUTPUTS
+Convert-AppLockertoIntune.ps1 creates a mobileconfig and plist files in the same folder as the script.
+
+.EXAMPLE
+Create an Intune profile called WIN_COPE_AppLocker_Test for AppLocker settings set to Audit, with a grouping of 'Baseline'
+PS> .\Convert-AppLockertoIntune.ps1 -tenantId '36019fe7-a342-4d98-9126-1b6f94904ac7' -xmlPath 'C:\Source\github\mve-scripts\Intune\EndpointSecurity\AppLockerConversion\AppLockerRules-Audit.xml' -displayName 'WIN_COPE_AppLocker_Test' -grouping 'Baseline' -enforcement Audit
+
+.EXAMPLE
+Create an Intune profile called WIN_COPE_AppLocker_Test for AppLocker settings set to Enforce, with a grouping of 'Development'
+PS> .\Convert-AppLockertoIntune.ps1 -tenantId '36019fe7-a342-4d98-9126-1b6f94904ac7' -xmlPath 'C:\Source\github\mve-scripts\Intune\EndpointSecurity\AppLockerConversion\AppLockerRules-Audit.xml' -displayName 'WIN_COPE_AppLocker_Test' -grouping 'Development' -enforcement Enforce
+
+#>
+
 [CmdletBinding()]
 
 param(
@@ -24,6 +62,7 @@ param(
 #region variables
 $encoding = 'UTF-8'
 [String[]]$scopes = 'DeviceManagementConfiguration.ReadWrite.All'
+$grouping = $grouping.Trim() -replace '\s',''
 #endregion variables
 
 #region functions
@@ -174,9 +213,8 @@ Try {
     if ($xmlDoc.xml -like '*encoding="utf-16"') {
         $xmlDoc.xml = $($xmlDoc.CreateXmlDeclaration('1.0', $encoding, '')).Value
         $xmlDoc.Save($xmlFile.FullName)
+        $xmlFile = Get-ChildItem $xmlPath
     }
-
-    $xmlFile = Get-ChildItem $xmlPath
 
     [xml]$xmlDoc = Get-Content $xmlFile
     $ruleCollections = $xmlDoc.ChildNodes.RuleCollection
@@ -186,7 +224,7 @@ Try {
         # Sets enforcement mode
         if ($null -ne $ruleCollection.EnforcementMode) {
             if ($enforcement -eq 'Enforce') {
-                $ruleCollection.EnforcementMode = 'Enforce'
+                $ruleCollection.EnforcementMode = 'Enabled'
             }
             else {
                 $ruleCollection.EnforcementMode = 'AuditOnly'
@@ -208,7 +246,7 @@ Try {
 
                 $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value 'microsoft.graph.omaSettingString'
                 $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $appLockerType
-                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'description' -Value $enforce
+                $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'description' -Value $enforcement
                 $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'omaUri' -Value $omaUri
                 $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'value' -Value $omaUrivalue
                 $omaSettings += $objectAppLockerSettings
@@ -217,18 +255,24 @@ Try {
         }
     }
 
-    $name = $displayName + '-' + $dateTime
-    # creates the object with the rules
-    $objectAppLocker | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.windows10CustomConfiguration'
-    $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $name
-    $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'description' -Value $null
-    $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'omaSettings' -Value @($omaSettings)
 
-    $appLockerJSON = $objectAppLocker | ConvertTo-Json -Depth 5
-    Write-Host "Creating AppLocker Custom Profile $name in Intune" -ForegroundColor Cyan
-    New-CustomProfile -JSON $appLockerJSON
-    Write-Host "Created AppLocker Custom Profile $name in Intune" -ForegroundColor Green
+    if ($null -ne $omaSettings) {
+        $name = $displayName + '-' + $dateTime
+        # creates the object with the rules
+        $objectAppLocker | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.windows10CustomConfiguration'
+        $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'displayName' -Value $name
+        $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'description' -Value $null
+        $objectAppLocker | Add-Member -MemberType NoteProperty -Name 'omaSettings' -Value @($omaSettings)
 
+        $appLockerJSON = $objectAppLocker | ConvertTo-Json -Depth 5
+        Write-Host "Creating AppLocker Custom Profile $name in Intune" -ForegroundColor Cyan
+        New-CustomProfile -JSON $appLockerJSON
+        Write-Host "Created AppLocker Custom Profile $name in Intune" -ForegroundColor Green
+    }
+    else {
+        Write-Host "Provided AppLocker export does not contain Rule Collections" -ForegroundColor Red
+        Break
+    }
 }
 Catch {
     Write-Error $Error[0].ErrorDetails.Message
