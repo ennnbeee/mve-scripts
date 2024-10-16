@@ -60,7 +60,6 @@ param(
 )
 
 #region variables
-$encoding = 'UTF-8'
 [String[]]$scopes = 'DeviceManagementConfiguration.ReadWrite.All'
 $grouping = $grouping.Trim() -replace '\s',''
 #endregion variables
@@ -209,14 +208,6 @@ Try {
     $omaSettings = @()
     $xmlFile = Get-ChildItem $xmlPath
     [xml]$xmlDoc = Get-Content $xmlFile
-    # Convert to UTF-8 for Intune
-    if ($xmlDoc.xml -like '*encoding="utf-16"') {
-        $xmlDoc.xml = $($xmlDoc.CreateXmlDeclaration('1.0', $encoding, '')).Value
-        $xmlDoc.Save($xmlFile.FullName)
-        $xmlFile = Get-ChildItem $xmlPath
-    }
-
-    [xml]$xmlDoc = Get-Content $xmlFile
     $ruleCollections = $xmlDoc.ChildNodes.RuleCollection
 
     foreach ($ruleCollection in $ruleCollections) {
@@ -250,11 +241,9 @@ Try {
                 $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'omaUri' -Value $omaUri
                 $objectAppLockerSettings | Add-Member -MemberType NoteProperty -Name 'value' -Value $omaUrivalue
                 $omaSettings += $objectAppLockerSettings
-
             }
         }
     }
-
 
     if ($null -ne $omaSettings) {
         $name = $displayName + '-' + $dateTime
