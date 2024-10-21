@@ -458,7 +458,8 @@ $featureUpdate = Switch ($featureUpdateBuild) {
 if ($scopeTag -ne 'default') {
     Get-ScopeTags | ForEach-Object {
         if ($_.displayName -eq $scopeTag) {
-            $scopeTagId = '{0:d5}' -f [int]$_.id #formats as five digits prefixed by zeroes
+            $scopeTagId = '{0:d5}' -f [int]$_.id
+            $scopeTagId | Out-Null
         }
     }
     if ($null -eq $scopeTagId) {
