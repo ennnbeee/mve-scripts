@@ -31,13 +31,10 @@
 ## of such damages.
 ## Feedback: neiljohn@microsoft.com
 
-https://github.com/jamf/PPPC-Utility/releases/download/1.5.0/PPPC-Utility.zip
-
 # User Defined variables
-PPPCLatestURL="https://github.com/jamf/PPPC-Utility/releases"
+PPPCLatestURL="https://github.com/jamf/PPPC-Utility/releases/latest"
 versionUrl=$(curl "${PPPCLatestURL}" -s -L -I -o /dev/null -w '%{url_effective}')
 versionNumber=$(printf "%s" "${versionUrl[@]}" | sed 's@.*/@@' | sed 's/%20/-/g')
-versionNumber=${versionNumber:1}
 weburl="https://github.com/jamf/PPPC-Utility/releases/download/$versionNumber/PPPC-Utility.zip"
 appname="PPPC Utility"                                             # The name of our App deployment script (also used for Octory monitor)
 app="$appname.app"                                                 # The actual name of our App once installed
@@ -676,7 +673,7 @@ function installZIP() {
 
     # Unzip files in temp dir
     unzip -qq -o "$tempfile"
-    if [ ["$?" = "0" ]]; then
+    if [[ "$?" = "0" ]]; then
         echo "$(date) | $tempfile unzipped"
     else
         echo "$(date) | failed to unzip $tempfile"
