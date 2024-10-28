@@ -1,16 +1,16 @@
 <#
 .SYNOPSIS
-Allows for a phased and controlled distribution of Windows 11 Feature Updates
-following the run and capture of Update Readiness data, tagging devices
-in Entra ID with their update readiness risk score for use with Dynamic
-Security Groups.
 
 .DESCRIPTION
-The Invoke-Windows11Accelerator script allows for the controlled roll out of
-Windows 11 Feature Updates based on device readiness risk assements data.
 
 .PARAMETER tenantId
 Provide the Id of the tenant to connecto to.
+
+.PARAMETER appId
+Provide the Id of the Entra App registration to be used for authentication.
+
+.PARAMETER appSecret
+Provide the App secret to allow for authentication to graph
 
 .PARAMETER Scopes
 The scopes used to connect to the Graph API using PowerShell.
@@ -41,18 +41,111 @@ PS> .\Invoke-MgEPNRulesUpdate.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7
 param(
 
     [Parameter(Mandatory = $true)]
-    [String]$tenantId = '12dddf86-ad8c-4563-a980-18d4c5321b6a',
+    [String]$tenantId,
+
+    [Parameter(Mandatory = $false)]
+    [String]$appId,
+
+    [Parameter(Mandatory = $false)]
+    [String]$appSecret,
 
     [Parameter(Mandatory = $false)]
     [String[]]$scopes = 'Group.Read.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All',
 
     [Parameter(Mandatory = $true)]
     [ValidateSet('Report', 'Import', 'ImportAssign')]
-    [string]$deployment
+    [string]$deployment,
+
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('All', 'Unmanaged', 'Automatic', 'UserConfirmed', 'SupportApproved')]
+    [String]$elevationType,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Hash')]
+    [string]$elevationGrouping = 'Hash',
+
+    [Parameter(Mandatory = $false)]
+    [String]$reportPath,
+
+    [Parameter(Mandatory = $false)]
+    [String]$importFile
 
 )
 
 #region Functions
+Function Connect-ToGraph {
+    <#
+.SYNOPSIS
+Authenticates to the Graph API via the Microsoft.Graph.Authentication module.
+
+.DESCRIPTION
+The Connect-ToGraph cmdlet is a wrapper cmdlet that helps authenticate to the Intune Graph API using the Microsoft.Graph.Authentication module. It leverages an Azure AD app ID and app secret for authentication or user-based auth.
+
+.PARAMETER Tenant
+Specifies the tenant (e.g. contoso.onmicrosoft.com) to which to authenticate.
+
+.PARAMETER AppId
+Specifies the Azure AD app ID (GUID) for the application that will be used to authenticate.
+
+.PARAMETER AppSecret
+Specifies the Azure AD app secret corresponding to the app ID that will be used to authenticate.
+
+.PARAMETER Scopes
+Specifies the user scopes for interactive authentication.
+
+.EXAMPLE
+Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
+
+-#>
+    [cmdletbinding()]
+    param
+    (
+        [Parameter(Mandatory = $false)] [string]$tenantId,
+        [Parameter(Mandatory = $false)] [string]$appId,
+        [Parameter(Mandatory = $false)] [string]$appSecret,
+        [Parameter(Mandatory = $false)] [string[]]$scopes
+    )
+
+    Process {
+        Import-Module Microsoft.Graph.Authentication
+        $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).major
+
+        if ($AppId -ne '') {
+            $body = @{
+                grant_type    = 'client_credentials';
+                client_id     = $appId;
+                client_secret = $appSecret;
+                scope         = 'https://graph.microsoft.com/.default';
+            }
+
+            $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
+            $accessToken = $response.access_token
+
+            if ($version -eq 2) {
+                Write-Host 'Version 2 module detected'
+                $accesstokenfinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
+            }
+            else {
+                Write-Host 'Version 1 Module Detected'
+                Select-MgProfile -Name Beta
+                $accesstokenfinal = $accessToken
+            }
+            $graph = Connect-MgGraph -AccessToken $accesstokenfinal
+            Write-Host "Connected to Intune tenant $TenantId using app-based authentication (Azure AD authentication not supported)"
+        }
+        else {
+            if ($version -eq 2) {
+                Write-Host 'Version 2 module detected'
+            }
+            else {
+                Write-Host 'Version 1 Module Detected'
+                Select-MgProfile -Name Beta
+            }
+            $graph = Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+            Write-Host "Connected to Intune tenant $($graph.TenantId)"
+        }
+    }
+}
 Function Test-JSON() {
 
     param (
@@ -80,12 +173,9 @@ Function Get-DeviceEPMReport() {
 
     param (
 
-        [Parameter(Mandatory = $false)]
-        [ValidateSet('Managed', 'Unmanaged')]
-        [String]$elevation,
-
-        [Parameter(Mandatory = $false)]
-        $Top
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('All', 'Unmanaged', 'Automatic', 'UserConfirmed', 'SupportApproved')]
+        [String]$type
 
     )
 
@@ -93,18 +183,33 @@ Function Get-DeviceEPMReport() {
     $Resource = 'deviceManagement/privilegeManagementElevations'
 
     try {
-        if ($elevation -eq 'Managed') {
-            $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)?filter=(elevationType ne 'unmanagedElevation')"
-            (Invoke-MgGraphRequest -Uri $uri -Method Get).value
+
+        switch ($type) {
+            All { $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)" }
+            Unmanaged { $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)?filter=(elevationType eq 'unmanagedElevation')" }
+            Automatic { $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)?filter=(elevationType eq 'zeroTouchElevation')" }
+            UserConfirmed { $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)?filter=(elevationType eq 'userConfirmedElevation')" }
+            SupportApproved { $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)?filter=(elevationType eq 'supportApprovedElevation')" }
+            Default { $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)" }
         }
-        elseif ($elevation -eq 'Unmanaged') {
-            $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)?filter=(elevationType eq 'unmanagedElevation')"
-            (Invoke-MgGraphRequest -Uri $uri -Method Get).value
+
+        $graphResults = Invoke-MgGraphRequest -Uri $uri -Method Get
+
+        $results = @()
+        $results += $graphResults.value
+
+        $pages = $graphResults.'@odata.nextLink'
+        while ($null -ne $pages) {
+
+            $additional = Invoke-MgGraphRequest -Uri $pages -Method Get
+
+            if ($pages) {
+                $pages = $additional.'@odata.nextLink'
+            }
+            $results += $additional.value
         }
-        else {
-            $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest -Uri $uri -Method Get).value
-        }
+        $results
+
     }
     catch {
         Write-Error $Error[0].ErrorDetails.Message
@@ -258,92 +363,81 @@ Function Add-DeviceSettingsCatalogAssignment() {
 }
 #endregion Functions
 
-#region authentication
+#region testing
+$tenantId = '437e8ffb-3030-469a-99da-e5b527908010'
+$deployment = 'Report'
+$elevationType = 'Unmanaged'
+$reportPath = 'C:\Source\github\mve-scripts\Intune\EndpointSecurity\EPMAutomation'
+$importFile = 'C:\Source\github\mve-scripts\Intune\EndpointSecurity\EPMAutomation\EPM_Report_UpdatedSample.csv'
+#endregion testing
+
+#region app auth
+Import-Module Microsoft.Graph.Authentication
 if (Get-MgContext) {
     Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
     Disconnect-MgGraph
 }
-$moduleName = 'Microsoft.Graph'
-$Module = Get-InstalledModule -Name $moduleName
-if ($Module.count -eq 0) {
-    Write-Host "$moduleName module is not available" -ForegroundColor yellow
-    $Confirm = Read-Host Are you sure you want to install module? [Y] Yes [N] No
-    if ($Confirm -match '[yY]') {
-        Install-Module -Name $moduleName -AllowClobber -Scope AllUsers -Force
-    }
-    else {
-        Write-Host "$moduleName module is required. Please install module using 'Install-Module $moduleName -Scope AllUsers -Force' cmdlet." -ForegroundColor Yellow
-        break
-    }
+if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
+    Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
+    Connect-ToGraph -tenantId $tenantId -Scopes $scopes
+    $existingScopes = (Get-MgContext).Scopes
+    Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+    Disconnect-MgGraph
+    Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+    Connect-ToGraph -tenantId $tenantId -Scopes $existingScopes
 }
 else {
-    If ($IsMacOS) {
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-        Disconnect-MgGraph
-        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-
-    }
-    ElseIf ($IsWindows) {
-        Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
-        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-        Disconnect-MgGraph
-        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-    }
-    Else {
-        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
-        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-        Disconnect-MgGraph
-        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-    }
-
-    $graphDetails = Get-MgContext
-    if ($null -eq $graphDetails) {
-        Write-Host "Not connected to Graph, please review any errors and try to run the script again' cmdlet." -ForegroundColor Red
-        break
-    }
+    Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
+    Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret
 }
-#endregion authentication
+#endregion app auth
 
-$date = (Get-Date -Format 'yyyy_MM_dd_HH_mm_ss').ToString()
-$reportPath = 'C:\Source\github\mve-scripts\Intune\EndpointSecurity\EPMAutomation'
-$importPath = 'C:\Source\github\mve-scripts\Intune\EndpointSecurity\EPMAutomation\EPM_Report_2024_04_03_13_13_03.csv'
-
+#region variables
 $elevationTypes = @('Automatic', 'UserAuthentication', 'UserJustification', 'SupportApproved')
 $childProcessBehaviours = @('AllowAll', 'RequireRule', 'DenyAll', 'NotConfigured')
 
+#endregion variables
+
 #region Report
 if ($deployment -eq 'Report') {
-    $reportPath = Read-Host -Prompt "Please specify a path to export the EPM data to e.g., 'C:\Temp'"
+
+    while (!$reportPath) {
+        $reportPath = Read-Host -Prompt "Please specify a path to export the EPM data to e.g., 'C:\Temp'"
+    }
     if (!(Test-Path "$reportPath")) {
         New-Item -ItemType Directory -Path "$reportPath" | Out-Null
     }
+    $date = (Get-Date -Format 'yyyy_MM_dd_HH_mm_ss').ToString()
     $csvFile = "$reportPath\EPM_Report_$date.csv"
-    $epmReport = @()
-    $hashes = Get-DeviceEPMReport | Group-Object -Property hash
-    foreach ($hash in $hashes) {
 
-        $elevations = $hash.Group
+    switch ($elevationGrouping) {
+        Hash { $grouping = 'hash' }
+        User { $grouping = 'upn' }
+        Device { $grouping = 'deviceName' }
+        Default { $grouping = 'hash' }
+    }
+    $epmReport = @()
+    $elevations = Get-DeviceEPMReport -type $elevationType | Group-Object -Property $grouping
+    foreach ($elevation in $elevations) {
+
+        $elevationGroups = $elevation.Group
         $users = @()
         $devices = @()
 
-        foreach ($elevation in $elevations) {
-            $fileName = $elevation.filePath | Split-Path -Leaf
-            $fileInternalName = $elevation.internalName
-            $fileCompany = $elevation.companyName
-            $fileProduct = $elevation.productName
-            $fileDescription = $elevation.fileDescription
-            $filePath = ($elevation.filePath | Split-Path) -replace '\\', '\\'
-            $fileVersion = $elevation.fileVersion
-            $users += $elevation.upn
-            $devices += $elevation.deviceName
+        foreach ($elevationGroup in $elevationGroups) {
+            $fileName = $elevationGroup.filePath | Split-Path -Leaf
+            $fileInternalName = $elevationGroup.internalName
+            $fileCompany = $elevationGroup.companyName
+            $fileProduct = $elevationGroup.productName
+            $fileDescription = $elevationGroup.fileDescription
+            $filePath = ($elevationGroup.filePath | Split-Path) -replace '\\', '\\'
+            $fileVersion = $elevationGroup.fileVersion
+            $users += $elevationGroup.upn
+            $devices += $elevationGroup.deviceName
         }
 
         $Data = [PSCustomObject]@{
-            ElevationCount        = $hash.Count
+            ElevationCount        = $elevation.Count
             Product               = $fileProduct
             Description           = $fileDescription
             Publisher             = $fileCompany
@@ -356,34 +450,39 @@ if ($deployment -eq 'Report') {
             Devices               = (($devices | Get-Unique) -join ' ' | Out-String).Trim()
             ElevationType         = $($elevationTypes -join '/')
             ChildProcessBehaviour = $($childProcessBehaviours -join '/')
-            Group                 = 'GroupName'
+            Group                 = 'AssignmentGroupName'
         }
 
         $epmReport += $Data
     }
 
     # CSV Report
-    $epmReport | Export-Csv -Path $csvFile -NoTypeInformation
+    $epmReport | Sort-Object ElevationCount -Descending | Export-Csv -Path $csvFile -NoTypeInformation
     Write-Host "Report exported to $csvFile" -ForegroundColor Green
 }
 #endregion Report
 
 #region Import
 elseif ($deployment -like '*Import*') {
-    $importPath = Read-Host -Prompt 'Please specify a path to EPM data CSV to e.g., C:\Temp\EPM_Data.csv'
-    if (!(Test-Path "$importPath")) {
-        Write-Host "Unable to find $importPath script unable to continue"
-        Break
+
+    while (!$importFile) {
+        $importFile = Read-Host -Prompt 'Please specify a path to EPM data CSV to e.g., C:\Temp\EPM_Data.csv'
     }
 
-    $policies = Import-Csv -Path $importPath | Group-Object -Property Group
+    while (!(Test-Path "$importFile")) {
+        Write-Host "Unable to find $importFile script unable to continue"
+        $importFile = Read-Host -Prompt "Unable to find $importFile please specify a valid path to EPM data CSV to e.g., C:\Temp\EPM_Data.csv"
+
+    }
+
+    $importedPolicies = Import-Csv -Path $importFile | Group-Object -Property Group
 
     #region Validation
     Write-Host 'Beginning validation of the imported policies.' -ForegroundColor Cyan
     $issuesElevationType = 0
     $issuesChildProcessBehaviour = 0
     $issuesGroup = 0
-    foreach ($policy in $policies) {
+    foreach ($policy in $importedPolicies) {
         $rules = $policy.Group
         foreach ($rule in $rules) {
             if ($rule.ElevationType -notin $elevationTypes) {
@@ -417,7 +516,7 @@ elseif ($deployment -like '*Import*') {
     }
     #endregion Validation
 
-    foreach ($policy in $policies) {
+    foreach ($policy in $importedPolicies) {
         $group = Get-IntuneGroup -Name $policy.Name
         $rules = $policy.Group
         $JSONRules = @()
@@ -1011,6 +1110,7 @@ elseif ($deployment -like '*Import*') {
 
         if ($deployment -eq 'ImportAssign') {
             Add-DeviceSettingsCatalogAssignment -Id $EPMPolicy.id -TargetGroupId $group.id -AssignmentType Include -Name $EPMPolicy.name
+            Write-Host "Successfully assigned $($EPMPolicy.name) to $($group.displayname)" -ForegroundColor Green
         }
 
     }
