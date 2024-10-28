@@ -1,11 +1,17 @@
-#!/bin/zsh
+#!/bin/bash
 #set -x
 
 ############################################################################################
 ##
-## Script to download latest Microsoft Remote Desktop
+## Script to install the latest [Google Chrome]
 ##
-###########################################
+## VER 3.0.1
+##
+## Change Log
+##
+## 2021-11-19 - Added logic to handle both APP and PKG inside DMG file. New function DMGPKG
+##
+############################################################################################
 
 ## Copyright (c) 2020 Microsoft Corp. All rights reserved.
 ## Scripts are not supported under any Microsoft standard support program or service. The scripts are provided AS IS without warranty of any kind.
@@ -18,20 +24,20 @@
 ## Feedback: neiljohn@microsoft.com
 
 # User Defined variables
-weburl="https://go.microsoft.com/fwlink/?linkid=868963"                                             # What is the Azure Blob Storage URL?
-appname="Microsoft Remote Desktop"                                                                  # The name of our App deployment script (also used for splash screen monitor)
-app="Microsoft Remote Desktop.app"                                                                  # The actual name of our App once installed
-logandmetadir="/Library/Application Support/Microsoft/IntuneScripts/installRemoteDesktop"                          # The location of our logs and last updated data
-processpath="/Applications/Microsoft Remote Desktop.app/Contents/MacOS/Microsoft Remote Desktop"    # The process name of the App we are installing
-terminateprocess="false"                                                                            # Do we want to terminate the running process? If false we'll wait until its not running
-autoUpdate="true"                                                                                  # If true, application updates itself and we should not attempt to update
+weburl="https://dl.google.com/chrome/mac/stable//googlechrome.dmg"         # What is the Azure Blob Storage URL?
+appname="Google Chrome"                                                    # The name of our App deployment script (also used for Octory monitor)
+app="Google Chrome.app"                                                    # The actual name of our App once installed
+logandmetadir="/Library/Logs/Microsoft/IntuneScripts/GoogleChrome"         # The location of our logs and last updated data
+processpath="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" # The process name of the App we are installing
+terminateprocess="true"                                                    # Do we want to terminate the running process? If false we'll wait until its not running
+autoUpdate="true"                                                          # Application updates itself, if already installed we should exit
 
 # Generated variables
 tempdir=$(mktemp -d)
-log="$logandmetadir/$appname.log"                                                                   # The location of the script log file
-metafile="$logandmetadir/$appname.meta"                                                             # The location of our meta file (for updates)
+log="$logandmetadir/$appname.log"       # The location of the script log file
+metafile="$logandmetadir/$appname.meta" # The location of our meta file (for updates)
 
-function installAria2c () {
+function installAria2c() {
 
     #####################################
     ## Aria2c installation
@@ -77,14 +83,13 @@ function installAria2c () {
             echo "$(date) | Aria2 installed"
             hdiutil detach -quiet "$mountpoint"
         fi
-    rm -rf "$output"
+        rm -rf "$output"
     fi
-
 
 }
 
 # function to delay script if the specified process is running
-waitForProcess () {
+waitForProcess() {
 
     #################################################################################################################
     #################################################################################################################
@@ -112,15 +117,14 @@ waitForProcess () {
     while ps aux | grep "$processName" | grep -v grep &>/dev/null; do
 
         if [[ $terminate == "true" ]]; then
-            pid=$(ps -fe | grep "$processName" | grep -v grep | awk '{print $2}')
-            echo "$(date) | + [$appname] running, terminating [$processName] at pid [$pid]..."
-            kill -9 $pid
+            echo "$(date) | + [$appname] running, terminating [$processpath]..."
+            pkill -f "$processName"
             return
         fi
 
         # If we've been passed a delay we should use it, otherwise we'll create a random delay each run
         if [[ ! $fixedDelay ]]; then
-            delay=$(( $RANDOM % 50 + 10 ))
+            delay=$(($RANDOM % 50 + 10))
         else
             delay=$fixedDelay
         fi
@@ -134,7 +138,7 @@ waitForProcess () {
 }
 
 # function to check if we need Rosetta 2
-checkForRosetta2 () {
+checkForRosetta2() {
 
     #################################################################################################################
     #################################################################################################################
@@ -152,17 +156,14 @@ checkForRosetta2 () {
     ###############################################################
     ###############################################################
 
-
-
     echo "$(date) | Checking if we need Rosetta 2 or not"
 
     # if Software update is already running, we need to wait...
     waitForProcess "/usr/sbin/softwareupdate"
 
-
     ## Note, Rosetta detection code from https://derflounder.wordpress.com/2020/11/17/installing-rosetta-2-on-apple-silicon-macs/
     OLDIFS=$IFS
-    IFS='.' read osvers_major osvers_minor osvers_dot_version <<< "$(/usr/bin/sw_vers -productVersion)"
+    IFS='.' read osvers_major osvers_minor osvers_dot_version <<<"$(/usr/bin/sw_vers -productVersion)"
     IFS=$OLDIFS
 
     if [[ ${osvers_major} -ge 11 ]]; then
@@ -191,9 +192,9 @@ checkForRosetta2 () {
                 fi
             fi
         fi
-        else
-            echo "$(date) | Mac is running macOS $osvers_major.$osvers_minor.$osvers_dot_version."
-            echo "$(date) | No need to install Rosetta on this version of macOS."
+    else
+        echo "$(date) | Mac is running macOS $osvers_major.$osvers_minor.$osvers_dot_version."
+        echo "$(date) | No need to install Rosetta on this version of macOS."
     fi
 
 }
@@ -237,12 +238,12 @@ fetchLastModifiedDate() {
 
     if [[ $1 == "update" ]]; then
         echo "$(date) | Writing last modifieddate [$lastmodified] to [$metafile]"
-        echo "$lastmodified" > "$metafile"
+        echo "$lastmodified" >"$metafile"
     fi
 
 }
 
-function downloadApp () {
+function downloadApp() {
 
     #################################################################################################################
     #################################################################################################################
@@ -265,137 +266,72 @@ function downloadApp () {
 
     echo "$(date) | Starting downlading of [$appname]"
 
-    # wait for other downloads to complete
-    waitForProcess "curl -f"
-
     #download the file
-    updateSplashScreen wait Downloading         # Swift Dialog
-    echo "$(date) | Downloading $appname [$weburl]"
+    updateSplashScreen wait Downloading # Swift Dialog
+    echo "$(date) | Downloading $appname"
 
     cd "$tempdir"
-    #curl -f -s --connect-timeout 30 --retry 5 --retry-delay 60 --compressed -L -J -O "$weburl"
+    #curl -f -s --connect-timeout 30 --retry 5 --retry-delay 60 -L -J -o "edge.pkg" "$weburl"
     $ARIA2 -q -x16 -s16 -d "$tempdir" "$weburl" --download-result=hide --summary-interval=0
-    if [[ $? == 0 ]]; then
+    if [ $? == 0 ]; then
 
-            # We have downloaded a file, we need to know what the file is called and what type of file it is
-            cd "$tempdir"
-            for f in *; do
-                tempfile=$f
-                echo "$(date) | Found downloaded tempfile [$tempfile]"
-            done
+        # We have downloaded a file, we need to know what the file is called and what type of file it is
+        tempSearchPath="$tempdir/*"
+        for f in $tempSearchPath; do
+            tempfile=$f
+        done
 
-            case $tempfile in
+        case $tempfile in
 
-            *.pkg|*.PKG|*.mpkg|*.MPKG)
-                packageType="PKG"
-                ;;
+        *.pkg | *.PKG)
+            packageType="PKG"
+            ;;
 
-            *.zip|*.ZIP)
-                packageType="ZIP"
-                ;;
+        *.zip | *.ZIP)
+            packageType="ZIP"
+            ;;
 
-            *.tbz2|*.TBZ2|*.bz2|*.BZ2)
-                packageType="BZ2"
-                ;;
+        *.dmg | *.DMG)
+            packageType="DMG"
+            ;;
 
-            *.dmg|*.DMG)
-
-                packageType="DMG"
-                ;;
-
-            *)
-                # We can't tell what this is by the file name, lets look at the metadata
-                echo "$(date) | Unknown file type [$f], analysing metadata"
-                metadata=$(file -z "$tempfile")
-
-                echo "$(date) | [DEBUG ] File metadata [$metadata]"
-
-                if [[ "$metadata" == *"Zip archive data"* ]]; then
+        *)
+            # We can't tell what this is by the file name, lets look at the metadata
+            echo "$(date) | Unknown file type [$f], analysing metadata"
+            metadata=$(file "$tempfile")
+            if [[ "$metadata" == *"Zip archive data"* ]]; then
                 packageType="ZIP"
                 mv "$tempfile" "$tempdir/install.zip"
                 tempfile="$tempdir/install.zip"
-                fi
+            fi
 
-                if [[ "$metadata" == *"xar archive"* ]]; then
+            if [[ "$metadata" == *"xar archive"* ]]; then
                 packageType="PKG"
                 mv "$tempfile" "$tempdir/install.pkg"
                 tempfile="$tempdir/install.pkg"
-                fi
+            fi
 
-                if [[ "$metadata" == *"DOS/MBR boot sector, extended partition table"* ]] || [[ "$metadata" == *"Apple Driver Map"* ]] ; then
+            if [[ "$metadata" == *"bzip2 compressed data"* ]] || [[ "$metadata" == *"zlib compressed data"* ]]; then
                 packageType="DMG"
                 mv "$tempfile" "$tempdir/install.dmg"
                 tempfile="$tempdir/install.dmg"
-                fi
-
-                if [[ "$metadata" == *"POSIX tar archive (bzip2 compressed data"* ]]; then
-                packageType="BZ2"
-                mv "$tempfile" "$tempdir/install.tar.bz2"
-                tempfile="$tempdir/install.tar.bz2"
-                fi
-                ;;
-            esac
-
-
-            if [[ "$packageType" == "DMG" ]]; then
-                # We have what we think is a DMG, but we don't know what is inside it yet, could be an APP or PKG or ZIP
-                # Let's mount it and try to guess what we're dealing with...
-                echo "$(date) | Found DMG, looking inside..."
-
-                # Mount the dmg file...
-                volume="$tempdir/$appname"
-                echo "$(date) | Mounting Image [$volume] [$tempfile]"
-                hdiutil attach -quiet -nobrowse -mountpoint "$volume" "$tempfile"
-                if [[ "$?" = "0" ]]; then
-                    echo "$(date) | Mounted succesfully to [$volume]"
-                else
-                    echo "$(date) | Failed to mount [$tempfile]"
-
-                fi
-
-                if  [[ $(ls "$volume" | grep -i .app) ]] && [[ $(ls "$volume" | grep -i .pkg) ]]; then
-
-                    echo "$(date) | Detected both APP and PKG in same DMG, exiting gracefully"
-
-                else
-
-                    if  [[ $(ls "$volume" | grep -i .app) ]]; then
-                        echo "$(date) | Detected APP, setting PackageType to DMG"
-                        packageType="DMG"
-                    fi
-
-                    if  [[ $(ls "$volume" | grep -i .pkg) ]]; then
-                        echo "$(date) | Detected PKG, setting PackageType to DMGPKG"
-                        packageType="DMGPKG"
-                    fi
-
-                    if  [[ $(ls "$volume" | grep -i .mpkg) ]]; then
-                        echo "$(date) | Detected PKG, setting PackageType to DMGPKG"
-                        packageType="DMGPKG"
-                    fi
-
-                fi
-
-                # Unmount the dmg
-                echo "$(date) | Un-mounting [$volume]"
-                hdiutil detach -quiet "$volume"
             fi
+            ;;
+        esac
 
-
-            if [[ ! $packageType ]]; then
-                echo "Failed to determine temp file type [$metadata]"
-                rm -rf "$tempdir"
-            else
-                echo "$(date) | Downloaded [$app] to [$tempfile]"
-                echo "$(date) | Detected install type as [$packageType]"
-            fi
+        if [[ ! $packageType ]]; then
+            echo "Failed to determine temp file type [$metadata]"
+            rm -rf "$tempdir"
+        else
+            echo "$(date) | Downloaded [$app] to [$tempfile]"
+            echo "$(date) | Detected install type as [$packageType]"
+        fi
 
     else
 
-         echo "$(date) | Failure to download [$weburl] to [$tempfile]"
-        updateSplashScreen fail Failed         # Swift Dialog
-
-         exit 1
+        echo "$(date) | Failure to download [$weburl] to [$tempfile]"
+        updateSplashScreen fail Failed # Swift Dialog
+        exit 1
     fi
 
 }
@@ -422,20 +358,19 @@ function updateCheck() {
     ###############################################################
     ###############################################################
 
-
     echo "$(date) | Checking if we need to install or update [$appname]"
 
     ## Is the app already installed?
     if [ -d "/Applications/$app" ]; then
 
-    # App is installed, if it's updates are handled by MAU we should quietly exit
-    if [[ $autoUpdate == "true" ]]; then
-        echo "$(date) | [$appname] is already installed and handles updates itself, exiting"
-        updateSplashScreen success Installed         # Swift Dialog
-        exit 0;
-    fi
+        # App is installed, if it's updates are handled by MAU we should quietly exit
+        if [[ $autoUpdate == "true" ]]; then
+            echo "$(date) | [$appname] is already installed and handles updates itself, exiting"
+            updateSplashScreen success Installed # Swift Dialog
+            exit 0
+        fi
 
-    # App is already installed, we need to determine if it requires updating or not
+        # App is already installed, we need to determine if it requires updating or not
         echo "$(date) | [$appname] already installed, let's see if we need to update"
         fetchLastModifiedDate
 
@@ -449,7 +384,7 @@ function updateCheck() {
                     update="update"
                 else
                     echo "$(date) | No update between previous [$previouslastmodifieddate] and current [$lastmodified]"
-                    updateSplashScreen success Installed         # Swift Dialog
+                    updateSplashScreen success Installed # Swift Dialog
                     echo "$(date) | Exiting, nothing to do"
                     exit 0
                 fi
@@ -468,7 +403,7 @@ function updateCheck() {
 }
 
 ## Install PKG Function
-function installPKG () {
+function installPKG() {
 
     #################################################################################################################
     #################################################################################################################
@@ -490,13 +425,12 @@ function installPKG () {
     ###############################################################
     ###############################################################
 
-
     # Check if app is running, if it is we need to wait.
     waitForProcess "$processpath" "300" "$terminateprocess"
 
     echo "$(date) | Installing $appname"
 
-    updateSplashScreen wait Installing         # Swift Dialog
+    updateSplashScreen wait Installing # Swift Dialog
 
     # Remove existing files if present
     if [[ -d "/Applications/$app" ]]; then
@@ -522,14 +456,14 @@ function installPKG () {
 
             echo "$(date) | Application [$appname] succesfully installed"
             fetchLastModifiedDate update
-            updateSplashScreen success Installed         # Swift Dialog
+            updateSplashScreen success Installed # Swift Dialog
             break
 
         else
 
             echo "$(date) | Failed to install $appname, trying $attempt of $max_attempts"
             updateSplashScreen error "Failed, retrying $attempt of $max_attempts"
-            attempt=$((attempt + 1))  # Increment the attempt counter
+            attempt=$((attempt + 1)) # Increment the attempt counter
             sleep 5
         fi
 
@@ -545,7 +479,7 @@ function installPKG () {
 }
 
 ## Install DMG Function
-function installDMGPKG () {
+function installDMG() {
 
     #################################################################################################################
     #################################################################################################################
@@ -567,12 +501,11 @@ function installDMGPKG () {
     ###############################################################
     ###############################################################
 
-
     # Check if app is running, if it is we need to wait.
     waitForProcess "$processpath" "300" "$terminateprocess"
 
     echo "$(date) | Installing [$appname]"
-    updateSplashScreen wait Installing         # Swift Dialog
+    updateSplashScreen wait Installing # Swift Dialog
 
     # Mount the dmg file...
     volume="$tempdir/$appname"
@@ -585,104 +518,17 @@ function installDMGPKG () {
         rm -rf "/Applications/$app"
     fi
 
-    for file in "$volume"/*.pkg
-    do
-        echo "$(date) | Starting installer for [$file]"
-        installer -pkg "$file" -target /Applications
-    done
-
-    for file in "$volume"/*.mpkg
-    do
-        echo "$(date) | Starting installer for [$file]"
-        installer -pkg "$file" -target /Applications
-    done
-
-    # Unmount the dmg
-    echo "$(date) | Un-mounting [$volume]"
-    hdiutil detach -quiet "$volume"
-
-    # Checking if the app was installed successfully
-
-    if [[ -a "/Applications/$app" ]]; then
-
-        echo "$(date) | [$appname] Installed"
-        echo "$(date) | Cleaning Up"
-        rm -rf "$tempfile"
-
-        echo "$(date) | Fixing up permissions"
-        sudo chown -R root:wheel "/Applications/$app"
-        echo "$(date) | Application [$appname] succesfully installed"
-        fetchLastModifiedDate update
-        updateSplashScreen success Installed         # Swift Dialog
-        exit 0
-    else
-        echo "$(date) | Failed to install [$appname]"
-        rm -rf "$tempdir"
-        updateSplashScreen fail Failed         # Swift Dialog
-        exit 1
-    fi
-
-}
-
-
-## Install DMG Function
-function installDMG () {
-
-    #################################################################################################################
-    #################################################################################################################
-    ##
-    ##  This function takes the following global variables and installs the DMG file into /Applications
-    ##
-    ##  Functions
-    ##
-    ##      isAppRunning (Pauses installation if the process defined in global variable $processpath is running )
-    ##      fetchLastModifiedDate (Called with update flag which causes the function to write the new lastmodified date to the metadata file)
-    ##
-    ##  Variables
-    ##
-    ##      $appname = Description of the App we are installing
-    ##      $tempfile = location of temporary DMG file downloaded
-    ##      $volume = name of volume mount point
-    ##      $app = name of Application directory under /Applications
-    ##
-    ###############################################################
-    ###############################################################
-
-
-    # Check if app is running, if it is we need to wait.
-    waitForProcess "$processpath" "300" "$terminateprocess"
-
-
-
-    echo "$(date) | Installing [$appname]"
-    updateSplashScreen wait Installing         # Swift Dialog
-
-    # Mount the dmg file...
-    volume="$tempdir/$appname"
-    echo "$(date) | Mounting Image [$volume] [$tempfile]"
-    hdiutil attach -quiet -nobrowse -mountpoint "$volume" "$tempfile"
-
-    # Remove existing files if present
-    if [[ -d "/Applications/$app" ]]; then
-        echo "$(date) | Removing existing files"
-        rm -rf "/Applications/$app"
-    fi
-
     # Sync the application and unmount once complete
     echo "$(date) | Copying app files to /Applications/$app"
     rsync -a "$volume"/*.app/ "/Applications/$app"
 
-    # Make sure permissions are correct
-    echo "$(date) | Fix up permissions"
-    dot_clean "/Applications/$app"
-
     # Unmount the dmg
     echo "$(date) | Un-mounting [$volume]"
     hdiutil detach -quiet "$volume"
 
     # Checking if the app was installed successfully
 
-    if [[ -a "/Applications/$app" ]]; then
+    if [[ -e "/Applications/$app" ]]; then
 
         echo "$(date) | [$appname] Installed"
         echo "$(date) | Cleaning Up"
@@ -692,19 +538,19 @@ function installDMG () {
         sudo chown -R root:wheel "/Applications/$app"
         echo "$(date) | Application [$appname] succesfully installed"
         fetchLastModifiedDate update
-        updateSplashScreen success Installed         # Swift Dialog
+        updateSplashScreen success Installed # Swift Dialog
         exit 0
     else
         echo "$(date) | Failed to install [$appname]"
         rm -rf "$tempdir"
-        updateSplashScreen fail Failed         # Swift Dialog
+        updateSplashScreen fail Failed # Swift Dialog
         exit 1
     fi
 
 }
 
 ## Install ZIP Function
-function installZIP () {
+function installZIP() {
 
     #################################################################################################################
     #################################################################################################################
@@ -726,188 +572,70 @@ function installZIP () {
     ###############################################################
     ###############################################################
 
-
     # Check if app is running, if it is we need to wait.
     waitForProcess "$processpath" "300" "$terminateprocess"
 
     echo "$(date) | Installing $appname"
-    updateSplashScreen wait Installing         # Swift Dialog
-
+    updateSplashScreen wait Installing # Swift Dialog
     # Change into temp dir
     cd "$tempdir"
-    if [[ "$?" = "0" ]]; then
-      echo "$(date) | Changed current directory to $tempdir"
+    if [ "$?" = "0" ]; then
+        echo "$(date) | Changed current directory to $tempdir"
     else
-      echo "$(date) | failed to change to $tempfile"
-      if [[ -d "$tempdir" ]]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
+        echo "$(date) | failed to change to $tempfile"
+        if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
+        updateSplashScreen fail Failed # Swift Dialog
+        exit 1
     fi
 
     # Unzip files in temp dir
     unzip -qq -o "$tempfile"
-    if [[ "$?" = "0" ]]; then
-      echo "$(date) | $tempfile unzipped"
-    else
-      echo "$(date) | failed to unzip $tempfile"
-      if [[ -d "$tempdir" ]]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
-    fi
-
-    # If app is already installed, remove all old files
-    if [[ -a "/Applications/$app" ]]; then
-
-      echo "$(date) | Removing old installation at /Applications/$app"
-      rm -rf "/Applications/$app"
-
-    fi
-
-    # Copy over new files
-    rsync -a "$app/" "/Applications/$app"
     if [ "$?" = "0" ]; then
-      echo "$(date) | $appname moved into /Applications"
+        echo "$(date) | $tempfile unzipped"
     else
-      echo "$(date) | failed to move $appname to /Applications"
-      if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
-    fi
-
-    # Make sure permissions are correct
-    echo "$(date) | Fix up permissions"
-    dot_clean "/Applications/$app"
-
-    if [ "$?" = "0" ]; then
-      echo "$(date) | correctly applied permissions to $appname"
-    else
-      echo "$(date) | failed to apply permissions to $appname"
-      if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
-    fi
-
-    # Checking if the app was installed successfully
-    if [ "$?" = "0" ]; then
-        if [[ -a "/Applications/$app" ]]; then
-
-            echo "$(date) | $appname Installed"
-            updateSplashScreen success Installed         # Swift Dialog
-            echo "$(date) | Cleaning Up"
-            rm -rf "$tempfile"
-
-            # Update metadata
-            fetchLastModifiedDate update
-
-            echo "$(date) | Fixing up permissions"
-            sudo chown -R root:wheel "/Applications/$app"
-            echo "$(date) | Application [$appname] succesfully installed"
-            exit 0
-        else
-            echo "$(date) | Failed to install $appname"
-            exit 1
-        fi
-    else
-
-        # Something went wrong here, either the download failed or the install Failed
-        # intune will pick up the exit status and the IT Pro can use that to determine what went wrong.
-        # Intune can also return the log file if requested by the admin
-
-        echo "$(date) | Failed to install $appname"
+        echo "$(date) | failed to unzip $tempfile"
         if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
+        updateSplashScreen fail Failed # Swift Dialog
         exit 1
     fi
-}
-
-## Install BZ2 Function
-function installBZ2 () {
-
-    #################################################################################################################
-    #################################################################################################################
-    ##
-    ##  This function takes the following global variables and installs the DMG file into /Applications
-    ##
-    ##  Functions
-    ##
-    ##      isAppRunning (Pauses installation if the process defined in global variable $processpath is running )
-    ##      fetchLastModifiedDate (Called with update flag which causes the function to write the new lastmodified date to the metadata file)
-    ##
-    ##  Variables
-    ##
-    ##      $appname = Description of the App we are installing
-    ##      $tempfile = location of temporary DMG file downloaded
-    ##      $volume = name of volume mount point
-    ##      $app = name of Application directory under /Applications
-    ##
-    ###############################################################
-    ###############################################################
-
-
-    # Check if app is running, if it is we need to wait.
-    waitForProcess "$processpath" "300" "$terminateprocess"
-
-    echo "$(date) | Installing $appname"
-    updateSplashScreen wait Installing         # Swift Dialog
-
-    # Change into temp dir
-    cd "$tempdir"
-    if [ "$?" = "0" ]; then
-      echo "$(date) | Changed current directory to $tempdir"
-    else
-      echo "$(date) | failed to change to $tempfile"
-      if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
-    fi
-
-    # Unzip files in temp dir
-    tar -jxf "$tempfile"
-    if [ "$?" = "0" ]; then
-      echo "$(date) | $tempfile uncompressed"
-    else
-      echo "$(date) | failed to uncompress $tempfile"
-      if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
-    fi
 
     # If app is already installed, remove all old files
-    if [[ -a "/Applications/$app" ]]; then
+    if [[ -e "/Applications/$app" ]]; then
 
-      echo "$(date) | Removing old installation at /Applications/$app"
-      rm -rf "/Applications/$app"
+        echo "$(date) | Removing old installation at /Applications/$app"
+        rm -rf "/Applications/$app"
 
     fi
 
     # Copy over new files
     rsync -a "$app/" "/Applications/$app"
     if [ "$?" = "0" ]; then
-      echo "$(date) | $appname moved into /Applications"
+        echo "$(date) | $appname moved into /Applications"
     else
-      echo "$(date) | failed to move $appname to /Applications"
-      if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
+        echo "$(date) | failed to move $appname to /Applications"
+        if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
+        updateSplashScreen fail Failed # Swift Dialog
+        exit 1
     fi
 
     # Make sure permissions are correct
     echo "$(date) | Fix up permissions"
     sudo chown -R root:wheel "/Applications/$app"
     if [ "$?" = "0" ]; then
-      echo "$(date) | correctly applied permissions to $appname"
+        echo "$(date) | correctly applied permissions to $appname"
     else
-      echo "$(date) | failed to apply permissions to $appname"
-      if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
-        updateSplashScreen fail Failed         # Swift Dialog
-      exit 1
+        echo "$(date) | failed to apply permissions to $appname"
+        if [ -d "$tempdir" ]; then rm -rf $tempdir; fi
+        updateSplashScreen fail Failed # Swift Dialog
+        exit 1
     fi
 
     # Checking if the app was installed successfully
     if [ "$?" = "0" ]; then
-        if [[ -a "/Applications/$app" ]]; then
+        if [[ -e "/Applications/$app" ]]; then
 
             echo "$(date) | $appname Installed"
-            updateSplashScreen success Installed         # Swift Dialog
+            updateSplashScreen success Installed # Swift Dialog
             echo "$(date) | Cleaning Up"
             rm -rf "$tempfile"
 
@@ -934,7 +662,7 @@ function installBZ2 () {
     fi
 }
 
-function updateSplashScreen () {
+function updateSplashScreen() {
 
     #################################################################################################################
     #################################################################################################################
@@ -955,16 +683,13 @@ function updateSplashScreen () {
     ###############################################################
     ###############################################################
 
-
     # Is Swift Dialog present
-    if [[ -a "/Library/Application Support/Dialog/Dialog.app/Contents/MacOS/Dialog" ]]; then
-
+    if [[ -e "/Library/Application Support/Dialog/Dialog.app/Contents/MacOS/Dialog" ]]; then
 
         echo "$(date) | Updating Swift Dialog monitor for [$appname] to [$1]"
-        echo listitem: title: $appname, status: $1, statustext: $2 >> /var/tmp/dialog.log
+        echo listitem: title: $appname, status: $1, statustext: $2 >>/var/tmp/dialog.log
 
         # Supported status: wait, success, fail, error, pending or progress:xx
-
 
     fi
 
@@ -986,18 +711,18 @@ function startLog() {
         mkdir -p "$logandmetadir"
     fi
 
-    exec > >(tee -a "$log") 2>&1
+    exec &> >(tee -a "$log")
 
 }
 
 # function to delay until the user has finished setup assistant.
-waitForDesktop () {
-  until ps aux | grep /System/Library/CoreServices/Dock.app/Contents/MacOS/Dock | grep -v grep &>/dev/null; do
-    delay=$(( $RANDOM % 50 + 10 ))
-    echo "$(date) |  + Dock not running, waiting [$delay] seconds"
-    sleep $delay
-  done
-  echo "$(date) | Dock is here, lets carry on"
+waitForDesktop() {
+    until ps aux | grep /System/Library/CoreServices/Dock.app/Contents/MacOS/Dock | grep -v grep &>/dev/null; do
+        delay=$(($RANDOM % 50 + 10))
+        echo "$(date) |  + Dock not running, waiting [$delay] seconds"
+        sleep $delay
+    done
+    echo "$(date) | Dock is here, lets carry on"
 }
 
 ###################################################################################
@@ -1043,16 +768,6 @@ if [[ $packageType == "ZIP" ]]; then
 fi
 
 # Install PKG file
-if [[ $packageType == "BZ2" ]]; then
-    installBZ2
-fi
-
-# Install PKG file
 if [[ $packageType == "DMG" ]]; then
     installDMG
-fi
-
-# Install DMGPKG file
-if [[ $packageType == "DMGPKG" ]]; then
-    installDMGPKG
 fi
