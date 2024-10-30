@@ -1,4 +1,4 @@
-$appName = 'MicrosoftTeams'
+$appName = 'OutlookForWindows'
 If ($null -eq (Get-AppxPackage -Name $appName -AllUsers)) {
     Write-Output "$appName not installed"
     Exit 0

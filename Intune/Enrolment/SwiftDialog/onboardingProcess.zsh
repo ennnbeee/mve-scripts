@@ -124,6 +124,7 @@ while [[ $unzipExitCode -ne 0 ]]; do
 
     if [[ $DownloadResult -eq 200 ]]; then
         echo "$(date) | Unzipping scripts..."
+        cd $tempdir
         unzip -qq -o onboarding_scripts.zip
         unzipExitCode=$?
     else

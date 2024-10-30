@@ -449,9 +449,9 @@ $ProgressPreference = 'SilentlyContinue';
 $rndWait = Get-Random -Minimum 2 -Maximum 5
 $extensionAttributeValue = 'extensionAttribute' + $extensionAttribute
 $featureUpdate = Switch ($featureUpdateBuild) {
-    '22H2' { 'NI22H2' }
-    '23H2' { 'NI23H2' }
-    '24H2' { 'NI24H2' }
+    '22H2' { 'NI22H2' } # Windows 11 22H2 (Nickel)
+    '23H2' { 'NI23H2' } # Windows 11 23H2 (Nickel)
+    '24H2' { 'GE24H2' } # Windows 11 24H2 (Germanium)
 }
 
 #region scope tags
