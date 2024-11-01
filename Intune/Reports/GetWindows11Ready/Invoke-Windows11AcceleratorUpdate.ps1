@@ -425,7 +425,18 @@ $target = 'user'
 #endregion testing
 
 #region app auth
-Import-Module Microsoft.Graph.Authentication
+$graphModule = 'Microsoft.Graph.Authentication'
+Write-Host "Checking for $graphModule PowerShell module..." -ForegroundColor Cyan
+
+If (!(Find-Module -Name $graphModule)) {
+    Install-Module -Name $graphModule -Scope CurrentUser -Force
+}
+Write-Host "PowerShell Module $graphModule found." -ForegroundColor Green
+
+if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | Where-Object FullName -Like "*$graphModule*")) {
+    Import-Module -Name $graphModule -Force
+}
+
 if (Get-MgContext) {
     Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
     Disconnect-MgGraph
