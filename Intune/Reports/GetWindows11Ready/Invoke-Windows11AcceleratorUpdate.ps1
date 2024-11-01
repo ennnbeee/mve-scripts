@@ -84,7 +84,7 @@ param(
     [Parameter(Mandatory = $false)]
     [String]$scopeTag = 'default',
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [boolean]$firstRun = $true,
 
     [Parameter(Mandatory = $false)]
@@ -320,10 +320,10 @@ Function Get-EntraIDObject() {
 
     $graphApiVersion = 'beta'
     if ($object -eq 'User') {
-        $Resource = 'users'
+        $Resource = "users?`$filter=userType eq 'member' and accountEnabled eq true"
     }
     else {
-        $Resource = 'devices'
+        $Resource = "devices?`$filter=operatingSystem eq 'Windows'"
     }
 
     try {
@@ -360,7 +360,7 @@ Function Get-ManagedDevices() {
     )
 
     $graphApiVersion = 'beta'
-    $Resource = 'deviceManagement/managedDevices'
+    $Resource = "deviceManagement/managedDevices?`$filter=operatingSystem eq 'Windows'"
 
     try {
 
@@ -412,15 +412,16 @@ Function Get-ScopeTags() {
 
 #endregion Functions
 
-<#region testing
+#region testing
+<#
 [String[]]$scopes = 'Group.ReadWrite.All,Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,User.ReadWrite.All,DeviceManagementRBAC.Read.All'
 $scopeTag = 'default'
 $featureUpdateBuild = '23H2'
 $extensionAttribute = 10
 $demo = $true
 $firstRun = $true
-$target = 'user'#>
-
+$target = 'user'
+#>
 #endregion testing
 
 #region app auth
@@ -500,10 +501,10 @@ $featureUpdateCreate = @"
 Write-Host
 Start-Sleep -Seconds $rndWait
 if ($demo) {
-    Write-Host "DEMO MODE: Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Cyan
+    Write-Host "DEMO: Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Red
 }
 else {
-    Write-Host "Production Mode: Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Magenta
+    Write-Host "PRODUCTION: Starting the 'Get Ready for Windows 11' Script..." -ForegroundColor Green
 }
 Write-Host
 Write-Host 'The script will carry out the following:' -ForegroundColor Green
@@ -515,11 +516,20 @@ Write-Host
 Write-Host 'The script can be run multiple times, as the Extension Attributes are overwritten if changed with each run.' -ForegroundColor Cyan
 Write-Host
 Write-Host "Before proceding with the running of the script, please create Entra ID Dynamic $target Groups for each of the below risk levels, using the provided rule:" -ForegroundColor Green
-Write-Host "    - Low Risk: ($target.$extensionAttributeValue -eq"LowRisk-W11-$featureUpdateBuild")" -ForegroundColor White
-Write-Host "    - Medium Risk: ($target.$extensionAttributeValue -eq"MediumRisk-W11-$featureUpdateBuild")" -ForegroundColor White
-Write-Host "    - High Risk: ($target.$extensionAttributeValue -eq"HighRisk-W11-$featureUpdateBuild")" -ForegroundColor White
-Write-Host "    - Not Ready: ($target.$extensionAttributeValue -eq"NotReady-W11-$featureUpdateBuild")" -ForegroundColor White
-Write-Host "    - Unknown: ($target.$extensionAttributeValue -eq"Unknown-W11-$featureUpdateBuild")" -ForegroundColor White
+Write-Host "    - Low Risk: ($target.$extensionAttributeValue -eq ""LowRisk-W11-$featureUpdateBuild"")" -ForegroundColor White
+Write-Host "    - Medium Risk: ($target.$extensionAttributeValue -eq ""MediumRisk-W11-$featureUpdateBuild"")" -ForegroundColor White
+Write-Host "    - High Risk: ($target.$extensionAttributeValue -eq ""HighRisk-W11-$featureUpdateBuild"")" -ForegroundColor White
+Write-Host "    - Not Ready: ($target.$extensionAttributeValue -eq ""NotReady-W11-$featureUpdateBuild"")" -ForegroundColor White
+Write-Host "    - Unknown: ($target.$extensionAttributeValue -eq ""Unknown-W11-$featureUpdateBuild"")" -ForegroundColor White
+Write-Host
+if ($target -eq 'device') {
+    Write-Host 'Consider using additional group rules for corporate owned Windows devices such as:' -ForegroundColor Cyan
+    Write-Host '(device.deviceOwnership -eq "Company") and (device.deviceOSType -eq "Windows")' -ForegroundColor White
+}
+else {
+    Write-Host 'Consider using additional group rules for Intune license assigned users such as:' -ForegroundColor Cyan
+    Write-Host '(user.accountEnabled -eq True) and (user.assignedPlans -any (assignedPlan.servicePlanId -eq "c1ec4a95-1f05-45b3-a911-aa3fa01094f5" -and assignedPlan.capabilityStatus -eq "Enabled"))' -ForegroundColor White
+}
 Write-Host
 if ($firstRun -eq $true) {
     Write-Warning 'Please review the above and confirm you are happy to continue.' -WarningAction Inquire
@@ -530,7 +540,7 @@ if ($firstRun -eq $true) {
 Write-Host
 if ($target -eq 'user') {
     Write-Host 'Getting user objects and associated IDs from Entra ID...' -ForegroundColor Cyan
-    $entraUsers = Get-EntraIDObject -object User | Where-Object { $_.accountEnabled -eq 'true' -and $_.userType -eq 'Member' }
+    $entraUsers = Get-EntraIDObject -object User
     Write-Host "Found $($entraUsers.Count) user objects and associated IDs from Entra ID." -ForegroundColor Green
     #optimising the entra user data
     $optEntraUsers = @{}
@@ -538,18 +548,18 @@ if ($target -eq 'user') {
         $optEntraUsers[$itemEntraUser.id] = $itemEntraUser
     }
     Write-Host
-    Write-Host 'Getting device objects and associated IDs from Microsoft Intune...' -ForegroundColor Cyan
-    $intuneDevices = Get-ManagedDevices | Where-Object { $_.operatingSystem -eq 'Windows' }
+    Write-Host 'Getting Windows device objects and associated IDs from Microsoft Intune...' -ForegroundColor Cyan
+    $intuneDevices = Get-ManagedDevices
     #optimising the intune device data
     $optIntuneDevices = @{}
     foreach ($itemIntuneDevice in $intuneDevices) {
         $optIntuneDevices[$itemIntuneDevice.azureADDeviceId] = $itemIntuneDevice
     }
-    Write-Host "Found $($intuneDevices.Count) device objects and associated IDs from Microsoft Intune." -ForegroundColor Green
+    Write-Host "Found $($intuneDevices.Count) Windows device objects and associated IDs from Microsoft Intune." -ForegroundColor Green
     Write-Host
 }
-Write-Host 'Getting device objects and associated IDs from Entra ID...' -ForegroundColor Cyan
-$entraDevices = Get-EntraIDObject -object Device | Where-Object { $_.operatingSystem -eq 'Windows' }
+Write-Host 'Getting Windows device objects and associated IDs from Entra ID...' -ForegroundColor Cyan
+$entraDevices = Get-EntraIDObject -object Device
 Write-Host "Found $($entraDevices.Count) Windows devices and associated IDs from Entra ID." -ForegroundColor Green
 #optimising the entra device data
 $optEntraDevices = @{}
@@ -612,6 +622,11 @@ Add-Type -AssemblyName System.IO.Compression
 $csvReportStream = Invoke-WebRequest -Uri $csvURL -Method Get -Headers $csvHeader -UseBasicParsing -ErrorAction Stop -Verbose
 $csvReportZip = [System.IO.Compression.ZipArchive]::new([System.IO.MemoryStream]::new($csvReportStream.Content))
 $csvReportDevices = [System.IO.StreamReader]::new($csvReportZip.GetEntry($csvReportZip.Entries[0]).open()).ReadToEnd() | ConvertFrom-Csv
+
+if ($($csvReportDevices.Count) -eq 0) {
+    Write-Warning 'No Feature Update Readiness report details were found, please review the pre-requisites ' -WarningAction Inquire
+
+}
 
 Write-Host "Found Feature Update Report Details for $($csvReportDevices.Count) devices." -ForegroundColor Green
 Write-Host

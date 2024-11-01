@@ -3,6 +3,9 @@ $ErrorActionPreference = 'silentlycontinue'
 
 $removeApps = @(
     #Unnecessary Windows 10/11 AppX Apps
+    'Clipchamp.Clipchamp'
+    'Microsoft.Copilot'
+    'Microsoft.OutlookForWindows'
     'Microsoft.549981C3F5F10' #cortana
     'Microsoft.XboxGameCallableUI'
     'Microsoft.BingNews'
@@ -23,7 +26,7 @@ $removeApps = @(
     'Microsoft.Print3D'
     #"Microsoft.RemoteDesktop"
     'Microsoft.SkypeApp'
-    #"Microsoft.StorePurchaseApp"
+    "Microsoft.StorePurchaseApp"
     'Microsoft.Office.Todo.List'
     'Microsoft.Whiteboard'
     'Microsoft.WindowsAlarms'
