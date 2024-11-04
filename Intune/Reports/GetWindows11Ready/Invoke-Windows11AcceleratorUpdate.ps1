@@ -429,7 +429,7 @@ $graphModule = 'Microsoft.Graph.Authentication'
 Write-Host "Checking for $graphModule PowerShell module..." -ForegroundColor Cyan
 
 If (!(Find-Module -Name $graphModule)) {
-    Install-Module -Name $graphModule -Scope CurrentUser -Force
+    Install-Module -Name $graphModule -Scope CurrentUser
 }
 Write-Host "PowerShell Module $graphModule found." -ForegroundColor Green
 
@@ -553,6 +553,10 @@ if ($target -eq 'user') {
     Write-Host 'Getting user objects and associated IDs from Entra ID...' -ForegroundColor Cyan
     $entraUsers = Get-EntraIDObject -object User
     Write-Host "Found $($entraUsers.Count) user objects and associated IDs from Entra ID." -ForegroundColor Green
+    if ($entraUsers.Count -eq 0) {
+        Write-Host "Found no Users in Entra." -ForegroundColor Red
+        Break
+    }
     #optimising the entra user data
     $optEntraUsers = @{}
     foreach ($itemEntraUser in $entraUsers) {
@@ -561,17 +565,26 @@ if ($target -eq 'user') {
     Write-Host
     Write-Host 'Getting Windows device objects and associated IDs from Microsoft Intune...' -ForegroundColor Cyan
     $intuneDevices = Get-ManagedDevices
+    Write-Host "Found $($intuneDevices.Count) Windows device objects and associated IDs from Microsoft Intune." -ForegroundColor Green
+    Write-Host
+    if ($intuneDevices.Count -eq 0) {
+        Write-Host "Found no Windows devices in Intune." -ForegroundColor Red
+        Break
+    }
     #optimising the intune device data
     $optIntuneDevices = @{}
     foreach ($itemIntuneDevice in $intuneDevices) {
         $optIntuneDevices[$itemIntuneDevice.azureADDeviceId] = $itemIntuneDevice
     }
-    Write-Host "Found $($intuneDevices.Count) Windows device objects and associated IDs from Microsoft Intune." -ForegroundColor Green
-    Write-Host
+
 }
 Write-Host 'Getting Windows device objects and associated IDs from Entra ID...' -ForegroundColor Cyan
 $entraDevices = Get-EntraIDObject -object Device
 Write-Host "Found $($entraDevices.Count) Windows devices and associated IDs from Entra ID." -ForegroundColor Green
+if ($entraDevices.Count -eq 0) {
+    Write-Host "Found no Windows devices in Entra." -ForegroundColor Red
+    Break
+}
 #optimising the entra device data
 $optEntraDevices = @{}
 foreach ($itemEntraDevice in $entraDevices) {

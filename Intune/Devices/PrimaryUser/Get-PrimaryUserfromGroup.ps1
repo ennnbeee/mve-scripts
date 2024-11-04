@@ -285,14 +285,10 @@ Function Get-MDMGroupMembers() {
 #endregion Functions
 
 #region testing
-<#
-$tenantId = ''
-$appId = ''
-$appSecret = ''
-$groupId = ''
+
 $csvPath = 'C:\Source\github\mve-scripts\Intune\Devices\PrimaryUser'
 $output = 'Grid'
-#>
+
 #endregion testing
 
 #region app auth

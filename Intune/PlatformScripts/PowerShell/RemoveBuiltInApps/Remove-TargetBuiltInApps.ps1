@@ -26,7 +26,7 @@ $removeApps = @(
     'Microsoft.Print3D'
     #"Microsoft.RemoteDesktop"
     'Microsoft.SkypeApp'
-    "Microsoft.StorePurchaseApp"
+    'Microsoft.StorePurchaseApp'
     'Microsoft.Office.Todo.List'
     'Microsoft.Whiteboard'
     'Microsoft.WindowsAlarms'
@@ -82,8 +82,6 @@ $removeApps = @(
     #"*Microsoft.Windows.Photos*"
     #"*Microsoft.WindowsCalculator*"
 )
-
-
 function Write-LogEntry {
     param(
         [parameter(Mandatory = $true, HelpMessage = 'Value added to the RemovedApps.log file.')]
@@ -106,7 +104,6 @@ function Write-LogEntry {
     }
 }
 
-
 Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Starting App removal process"
 
 foreach ($removeApp in $removeApps) {
@@ -116,40 +113,30 @@ foreach ($removeApp in $removeApps) {
 
     Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Finding AppxPackage for $removeApp"
     if ($appxPackage) {
-
         Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Removing App $($appxPackage.PackageFullName)"
         Get-AppxPackage -AllUsers -Name $removeApp | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-
     }
     else {
-
         Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Could not find AppxPackage $removeApp"
-
     }
 
     Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Finding AppxProvisioningPackage for $removeApp"
     if ($appxProvisioningPackage) {
-
         Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Removing App $($appxProvisioningPackage.PackageName)"
         Get-AppxProvisionedPackage -Online | Where-Object DisplayName -Like $removeApp | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
     }
     else {
-
         Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Could not find AppxProvisioningPackage $removeApp"
-
     }
 
     $appxPackage = Get-AppxPackage -Name $removeApp -AllUsers -ErrorAction SilentlyContinue
     $appxProvisioningPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -Like $removeApp -ErrorAction SilentlyContinue
 
     if ($appxPackage) {
-
         Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Removing App $($appxPackage.PackageFullName)"
         Get-AppxPackage -AllUsers -Name $removeApp | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-
     }
     if ($appxProvisioningPackage) {
-
         Write-LogEntry -Value "$(Get-Date -Format yyy.MM.dd-hh:mm:ss) - Removing App $($appxProvisioningPackage.PackageName)"
         Get-AppxProvisionedPackage -Online | Where-Object DisplayName -Like $removeApp | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
     }
