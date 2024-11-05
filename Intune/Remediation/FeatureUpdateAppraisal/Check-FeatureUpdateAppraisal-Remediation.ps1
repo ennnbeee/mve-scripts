@@ -1,5 +1,5 @@
 Try {
-    $filePath = $env:windir + '\system32\CompatTelRunner.exe'
+    $filePath = "$env:windir\system32\CompatTelRunner.exe"
     $argumentList = "-m:appraiser.dll -f:DoScheduledTelemetryRun"
 
     if (Test-Path -Path $filePath){
