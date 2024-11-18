@@ -7,10 +7,10 @@ Security Groups.
 
 .DESCRIPTION
 The Invoke-Windows11Accelerator script allows for the controlled roll out of
-Windows 11 Feature Updates based on device readiness risk assements data.
+Windows 11 Feature Updates based on device readiness risk assessments data.
 
 .PARAMETER tenantId
-Provide the Id of the tenant to connecto to.
+Provide the Id of the tenant to connect to.
 
 .PARAMETER appId
 Provide the Id of the Entra App registration to be used for authentication.
@@ -19,7 +19,7 @@ Provide the Id of the Entra App registration to be used for authentication.
 Provide the App secret to allow for authentication to graph
 
 .PARAMETER featureUpdateBuild
-Select the Windows 11 Feature Update verion you wish to deploy
+Select the Windows 11 Feature Update version you wish to deploy
 Choice of 22H2 or 23H2.
 
 .PARAMETER extensionAttribute
