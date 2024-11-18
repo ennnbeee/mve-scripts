@@ -375,7 +375,7 @@ Try {
 
     #$configContent = $configHead + $configXML
     $configContent = $configHead + $(Format-XML $configXML)
-    $configContent | Out-File -FilePath $configFile
+    $configContent | Out-File -FilePath $configFile -Encoding utf8
     Write-Host "Configuration profile for $mdm written to $configFile" -ForegroundColor Green
 }
 Catch {
