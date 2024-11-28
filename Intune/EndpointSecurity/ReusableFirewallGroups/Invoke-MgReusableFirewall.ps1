@@ -47,6 +47,12 @@ param(
     [String]$tenantId,
 
     [Parameter(Mandatory = $false)]
+    [String]$appId,
+
+    [Parameter(Mandatory = $false)]
+    [String]$appSecret,
+
+    [Parameter(Mandatory = $false)]
     [String]$tenantName,
 
     [Parameter(Mandatory = $false)]
@@ -66,7 +72,89 @@ param(
 
 )
 
+#region testing
+$tenantId = '69b2ff03-08b5-4781-b7ea-af7ffbf790c4'
+$tenantName = 'phxconsamvokes.onmicrosoft.com'
+$instance = 'Worldwide'
+$serviceAreas = @('MEM')
+$groupBy = 'service'
+$scopes = 'DeviceManagementConfiguration.Read.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
+#endregion testing
+
 #region Functions
+Function Connect-ToGraph {
+    <#
+.SYNOPSIS
+Authenticates to the Graph API via the Microsoft.Graph.Authentication module.
+
+.DESCRIPTION
+The Connect-ToGraph cmdlet is a wrapper cmdlet that helps authenticate to the Intune Graph API using the Microsoft.Graph.Authentication module. It leverages an Azure AD app ID and app secret for authentication or user-based auth.
+
+.PARAMETER Tenant
+Specifies the tenant (e.g. contoso.onmicrosoft.com) to which to authenticate.
+
+.PARAMETER AppId
+Specifies the Azure AD app ID (GUID) for the application that will be used to authenticate.
+
+.PARAMETER AppSecret
+Specifies the Azure AD app secret corresponding to the app ID that will be used to authenticate.
+
+.PARAMETER Scopes
+Specifies the user scopes for interactive authentication.
+
+.EXAMPLE
+Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
+
+-#>
+    [cmdletbinding()]
+    param
+    (
+        [Parameter(Mandatory = $false)] [string]$tenantId,
+        [Parameter(Mandatory = $false)] [string]$appId,
+        [Parameter(Mandatory = $false)] [string]$appSecret,
+        [Parameter(Mandatory = $false)] [string[]]$scopes
+    )
+
+    Process {
+        Import-Module Microsoft.Graph.Authentication
+        $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).major
+
+        if ($AppId -ne '') {
+            $body = @{
+                grant_type    = 'client_credentials';
+                client_id     = $appId;
+                client_secret = $appSecret;
+                scope         = 'https://graph.microsoft.com/.default';
+            }
+
+            $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
+            $accessToken = $response.access_token
+
+            if ($version -eq 2) {
+                Write-Host 'Version 2 module detected'
+                $accesstokenfinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
+            }
+            else {
+                Write-Host 'Version 1 Module Detected'
+                Select-MgProfile -Name Beta
+                $accesstokenfinal = $accessToken
+            }
+            $graph = Connect-MgGraph -AccessToken $accesstokenfinal
+            Write-Host "Connected to Intune tenant $TenantId using app-based authentication (Azure AD authentication not supported)"
+        }
+        else {
+            if ($version -eq 2) {
+                Write-Host 'Version 2 module detected'
+            }
+            else {
+                Write-Host 'Version 1 Module Detected'
+                Select-MgProfile -Name Beta
+            }
+            $graph = Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+            Write-Host "Connected to Intune tenant $($graph.TenantId)"
+        }
+    }
+}
 Function Test-JSON() {
 
     param (
@@ -113,64 +201,41 @@ Function New-DeviceReusableSetting() {
 }
 #endregion Functions
 
-#region authentication
+#region app auth
+$graphModule = 'Microsoft.Graph.Authentication'
+Write-Host "Checking for $graphModule PowerShell module..." -ForegroundColor Cyan
+
+If (!(Find-Module -Name $graphModule)) {
+    Install-Module -Name $graphModule -Scope CurrentUser
+}
+Write-Host "PowerShell Module $graphModule found." -ForegroundColor Green
+
+if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | Where-Object FullName -Like "*$graphModule*")) {
+    Import-Module -Name $graphModule -Force
+}
+
 if (Get-MgContext) {
     Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
     Disconnect-MgGraph
 }
-$moduleName = 'Microsoft.Graph'
-$Module = Get-InstalledModule -Name $moduleName
-if ($Module.count -eq 0) {
-    Write-Host "$moduleName module is not available" -ForegroundColor yellow
-    $Confirm = Read-Host Are you sure you want to install module? [Y] Yes [N] No
-    if ($Confirm -match '[yY]') {
-        Install-Module -Name $moduleName -AllowClobber -Scope AllUsers -Force
-    }
-    else {
-        Write-Host "$moduleName module is required. Please install module using 'Install-Module $moduleName -Scope AllUsers -Force' cmdlet." -ForegroundColor Yellow
-        break
-    }
+if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
+    Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
+    Connect-ToGraph -tenantId $tenantId -Scopes $scopes
+    $existingScopes = (Get-MgContext).Scopes
+    Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
+    Disconnect-MgGraph
+    Write-Host 'Connecting to Graph' -ForegroundColor Cyan
+    Connect-ToGraph -tenantId $tenantId -Scopes $existingScopes
 }
 else {
-    If ($IsMacOS) {
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-        Disconnect-MgGraph
-        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-
-    }
-    ElseIf ($IsWindows) {
-        Connect-MgGraph -Scopes $scopes -UseDeviceCode -TenantId $tenantId
-        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-        Disconnect-MgGraph
-        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-    }
-    Else {
-        Connect-MgGraph -Scopes $scopes -TenantId $tenantId
-        Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-        Disconnect-MgGraph
-        Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-        Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -TenantId $tenantId
-    }
-
-    $graphDetails = Get-MgContext
-    if ($null -eq $graphDetails) {
-        Write-Host "Not connected to Graph, please review any errors and try to run the script again' cmdlet." -ForegroundColor Red
-        break
-    }
+    Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
+    Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret
 }
-#endregion authentication
+#endregion app auth
 
 #region script
 
-Write-Host '█▀▄▀█ █ █▀▀ █▀█ █▀█ █▀ █▀█ █▀▀ ▀█▀   █▀█ █▄░█ █░░ █ █▄░█ █▀▀   █▀█ █▀▀ █░█ █▀ ▄▀█ █▄▄ █░░ █▀▀' -ForegroundColor Red
-Write-Host '█░▀░█ █ █▄▄ █▀▄ █▄█ ▄█ █▄█ █▀░ ░█░   █▄█ █░▀█ █▄▄ █ █░▀█ ██▄   █▀▄ ██▄ █▄█ ▄█ █▀█ █▄█ █▄▄ ██▄' -ForegroundColor Red
-Write-Host
-Write-Host '█▀▀ █ █▀█ █▀▀ █░█░█ ▄▀█ █░░ █░░   █▀ █▀▀ ▀█▀ ▀█▀ █ █▄░█ █▀▀   █▀▀ █▀█ █▀▀ ▄▀█ ▀█▀ █▀█ █▀█' -ForegroundColor Red
-Write-Host '█▀░ █ █▀▄ ██▄ ▀▄▀▄▀ █▀█ █▄▄ █▄▄   ▄█ ██▄ ░█░ ░█░ █ █░▀█ █▄█   █▄▄ █▀▄ ██▄ █▀█ ░█░ █▄█ █▀▄' -ForegroundColor Red
-Write-Host
+Write-Host 'Microsoft Online Reusable Firewall Setting Creator' -ForegroundColor Red
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $reusableSettings = @()
@@ -729,5 +794,5 @@ foreach ($reusableSetting in $reusableSettings) {
     }
 
 }
-Disconnect-MgGraph
+
 #endregion script
