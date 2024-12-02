@@ -1,5 +1,6 @@
 $avClient = 'Sophos Anti-Virus'
-$avProduct = Get-WmiObject -Namespace 'root\SecurityCenter2' -Class AntiVirusProduct | Where-Object { $_.displayName -eq $avClient } | Select-Object -First 1
+$avProduct = Get-CimInstance -Namespace 'root\SecurityCenter2' -Class AntiVirusProduct | Where-Object { $_.displayName -eq $avClient } | Select-Object -First 1
+#$avProduct = Get-WmiObject -Namespace 'root\SecurityCenter2' -Class AntiVirusProduct | Where-Object { $_.displayName -eq $avClient } | Select-Object -First 1
 $avSummary = New-Object -TypeName PSObject
 
 If ($avProduct) {
