@@ -17,7 +17,7 @@ fontDir="/Library/Fonts/" # All users fonts folder
 
 # Generated variables
 tempDir=$(mktemp -d)
-logandMetaDir="/Library/Application Support/Microsoft/IntuneScripts/$appName" # The location of our logs and last updated data
+logandMetaDir="/Library/Logs/Microsoft/IntuneScripts/$appName" # The location of our logs and last updated data
 log="$logandMetaDir/$appName.log"                                             # The location of the script log file
 
 # Start logging
@@ -33,30 +33,26 @@ exec > >(tee -a "$log") 2>&1
 echo "$(date) | Starting Script..."
 cd "$tempDir"
 
-while [[ $unzipExitCode -ne 0 ]]; do
+# Increment count
+downloadAttempts=$((downloadAttempts + 1))
+echo "$(date) | Attempting to downloading files [$downloadAttempts]..."
 
-    # Increment count
-    downloadAttempts=$((downloadAttempts + 1))
-    echo "$(date) | Attempting to downloading files [$downloadAttempts]..."
+# Attempt download of onboarding scripts
+downloadResult=$(/usr/bin/curl -sL ${fontPackageUrl} -o ${tempDir}/fonts.zip -w "%{http_code}")
 
-    # Attempt download of onboarding scripts
-    downloadResult=$(/usr/bin/curl -sL ${fontPackageUrl} -o ${tempDir}/fonts.zip -w "%{http_code}")
+if [[ $downloadResult -eq 200 ]]; then
+    echo "$(date) | Unzipping scripts..."
+    unzip -qq -o fonts.zip
 
-    if [[ $downloadResult -eq 200 ]]; then
-        echo "$(date) | Unzipping scripts..."
-        unzip -qq -o fonts.zip
-        unzipExitCode=$?
-    else
-        # If the download was not successful we will wait here for 2 seconds.
-        sleep 2
-    fi
+else
+    # If the download was not successful we will wait here for 2 seconds.
+    sleep 2
+fi
 
-    if [[ $downloadAttempts -gt 5 ]]; then
-        echo "$(date) | Failed to download and unzip font files after 5 attempts, exiting..."
-        exit 1
-    fi
-
-done
+if [[ $downloadAttempts -gt 5 ]]; then
+    echo "$(date) | Failed to download and unzip font files after 5 attempts, exiting..."
+    exit 1
+fi
 
 # Loop through each font file in the temporary directory
 for fontFile in "$tempDir"/*; do
