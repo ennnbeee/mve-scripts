@@ -11,7 +11,7 @@ autoinstall:
       name: lvm
       password: ubuntu # Change this to your desired password
   keyboard:
-    layout: en
+    layout: us
   locale: en_US
   packages:
     - curl
