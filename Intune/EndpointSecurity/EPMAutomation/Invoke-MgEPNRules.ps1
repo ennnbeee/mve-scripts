@@ -346,31 +346,31 @@ elseif ($Deployment -like '*Import*') {
                 break
             }
             $JSONPolicyStart = @"
+{
+    "description": "$PolicyDescription",
+    "name": "$PolicyName",
+    "platforms": "windows10",
+    "settings": [
         {
-            "description": "$PolicyDescription",
-            "name": "$PolicyName",
-            "platforms": "windows10",
-            "settings": [
-              {
-                "settingInstance": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance",
-                  "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}",
-                  "settingInstanceTemplateReference": {
-                    "settingInstanceTemplateId": "ee3d2e5f-6b3d-4cb1-af9b-37b02d3dbae2"
-                  },
-                  "groupSettingCollectionValue": [
+            "settingInstance": {
+            "@odata.type": "#microsoft.graph.deviceManagementConfigurationGroupSettingCollectionInstance",
+            "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}",
+            "settingInstanceTemplateReference": {
+                "settingInstanceTemplateId": "ee3d2e5f-6b3d-4cb1-af9b-37b02d3dbae2"
+            },
+            "groupSettingCollectionValue": [
 
 "@
             $JSONPolicyEnd = @'
-                        ]
-                    }
-                }
-            ],
-            "technologies": "endpointPrivilegeManagement",
-            "templateReference": {
-                "templateId": "cff02aad-51b1-498d-83ad-81161a393f56_1"
+                ]
             }
         }
+    ],
+    "technologies": "endpointPrivilegeManagement",
+    "templateReference": {
+        "templateId": "cff02aad-51b1-498d-83ad-81161a393f56_1"
+    }
+}
 '@
 
             foreach ($Rule in $Rules) {
@@ -387,84 +387,84 @@ elseif ($Deployment -like '*Import*') {
                 if ($Rule -eq $Rules[0]) {
 
                     $JSONRuleStart = @"
+                {
+                    "settingValueTemplateReference": null,
+                    "children": [
                     {
-                        "settingValueTemplateReference": null,
-                        "children": [
-                        {
-                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingInstance",
-                            "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_appliesto",
-                            "settingInstanceTemplateReference": {
-                                "settingInstanceTemplateId": "0cde1c42-c701-44b1-94b7-438dd4536128"
-                            },
-                            "choiceSettingValue": {
-                            "value": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_allusers",
-                            "settingValueTemplateReference": {
-                                "settingValueTemplateId": "2ec26569-c08f-434c-af3d-a50ac4a1ce26",
-                                "useTemplateDefault": false
-                            },
-                            "children": []
-                            }
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingInstance",
+                        "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_appliesto",
+                        "settingInstanceTemplateReference": {
+                            "settingInstanceTemplateId": "0cde1c42-c701-44b1-94b7-438dd4536128"
                         },
-                        {
-                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
-                            "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_description",
-                            "settingInstanceTemplateReference": {
-                                "settingInstanceTemplateId": "b3714f3a-ead8-4682-a16f-ffa264c9d58f"
-                            },
-                            "simpleSettingValue": {
+                        "choiceSettingValue": {
+                        "value": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_allusers",
+                        "settingValueTemplateReference": {
+                            "settingValueTemplateId": "2ec26569-c08f-434c-af3d-a50ac4a1ce26",
+                            "useTemplateDefault": false
+                        },
+                        "children": []
+                        }
+                    },
+                    {
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
+                        "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_description",
+                        "settingInstanceTemplateReference": {
+                            "settingInstanceTemplateId": "b3714f3a-ead8-4682-a16f-ffa264c9d58f"
+                        },
+                        "simpleSettingValue": {
                             "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                             "value": "$RuleDescription",
                             "settingValueTemplateReference": {
                                 "settingValueTemplateId": "5e82a1e9-ef4f-43ea-8031-93aace2ad14d",
                                 "useTemplateDefault": false
                             }
-                            }
+                        }
+                    },
+                    {
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
+                        "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_productname",
+                        "settingInstanceTemplateReference": {
+                            "settingInstanceTemplateId": "234631a1-aeb1-436f-9e05-dcd9489caf08"
                         },
-                        {
-                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
-                            "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_productname",
-                            "settingInstanceTemplateReference": {
-                              "settingInstanceTemplateId": "234631a1-aeb1-436f-9e05-dcd9489caf08"
-                            },
-                            "simpleSettingValue": {
-                              "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                              "value": "$FileProduct",
-                              "settingValueTemplateReference": {
-                                "settingValueTemplateId": "e466f96d-0633-40b3-86a4-9e093b696077",
-                                "useTemplateDefault": false
-                              }
+                        "simpleSettingValue": {
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "value": "$FileProduct",
+                            "settingValueTemplateReference": {
+                                    "settingValueTemplateId": "e466f96d-0633-40b3-86a4-9e093b696077",
+                                    "useTemplateDefault": false
                             }
+                        }
+                    },
+                    {
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
+                        "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_internalname",
+                        "settingInstanceTemplateReference": {
+                            "settingInstanceTemplateId": "08511f12-25b5-4218-812c-39a2db444ef1"
                         },
-                        {
-                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
-                            "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_internalname",
-                            "settingInstanceTemplateReference": {
-                              "settingInstanceTemplateId": "08511f12-25b5-4218-812c-39a2db444ef1"
-                            },
-                            "simpleSettingValue": {
-                              "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                              "value": "$FileInternalName",
-                              "settingValueTemplateReference": {
+                        "simpleSettingValue": {
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "value": "$FileInternalName",
+                            "settingValueTemplateReference": {
                                 "settingValueTemplateId": "ec295dd4-6bbc-4fa8-a503-960784c53f41",
                                 "useTemplateDefault": false
-                              }
                             }
+                        }
+                    },
+                    {
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
+                        "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_filehash",
+                        "settingInstanceTemplateReference": {
+                        "settingInstanceTemplateId": "e4436e2c-1584-4fba-8e38-78737cbbbfdf"
                         },
-                        {
-                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
-                            "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_filehash",
-                            "settingInstanceTemplateReference": {
-                            "settingInstanceTemplateId": "e4436e2c-1584-4fba-8e38-78737cbbbfdf"
-                            },
-                            "simpleSettingValue": {
+                        "simpleSettingValue": {
                             "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
                             "value": "$FileHash",
                             "settingValueTemplateReference": {
                                 "settingValueTemplateId": "1adcc6f7-9fa4-4ce3-8941-2ce22cf5e404",
                                 "useTemplateDefault": false
                             }
-                            }
-                        },
+                        }
+                    },
 "@
 
                     if ($ElevationType -eq 'Automatic') {
@@ -627,24 +627,24 @@ elseif ($Deployment -like '*Import*') {
                 {
                     "settingValueTemplateReference": null,
                     "children": [
-                      {
+                        {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingInstance",
                         "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_appliesto",
                         "settingInstanceTemplateReference": null,
                         "choiceSettingValue": {
-                          "settingValueTemplateReference": null,
-                          "value": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_allusers",
-                          "children": []
+                            "settingValueTemplateReference": null,
+                            "value": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_allusers",
+                            "children": []
                         }
-                      },
-                      {
+                        },
+                        {
                         "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
                         "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_description",
                         "settingInstanceTemplateReference": null,
                         "simpleSettingValue": {
-                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                        "settingValueTemplateReference": null,
-                        "value": "$RuleDescription"
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "settingValueTemplateReference": null,
+                            "value": "$RuleDescription"
                         }
                     },
                     {
@@ -652,9 +652,9 @@ elseif ($Deployment -like '*Import*') {
                         "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_productname",
                         "settingInstanceTemplateReference": null,
                         "simpleSettingValue": {
-                          "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                          "settingValueTemplateReference": null,
-                          "value": "$FileProduct"
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "settingValueTemplateReference": null,
+                            "value": "$FileProduct"
                         }
                     },
                     {
@@ -662,9 +662,9 @@ elseif ($Deployment -like '*Import*') {
                         "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_internalname",
                         "settingInstanceTemplateReference": null,
                         "simpleSettingValue": {
-                          "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                          "settingValueTemplateReference": null,
-                          "value": "$FileInternalName"
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "settingValueTemplateReference": null,
+                            "value": "$FileInternalName"
                         }
                     },
                     {
@@ -672,9 +672,9 @@ elseif ($Deployment -like '*Import*') {
                         "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_filehash",
                         "settingInstanceTemplateReference": null,
                         "simpleSettingValue": {
-                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                        "settingValueTemplateReference": null,
-                        "value": "$FileHash"
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "settingValueTemplateReference": null,
+                            "value": "$FileHash"
                         }
                     },
 "@
@@ -687,9 +687,9 @@ elseif ($Deployment -like '*Import*') {
                             "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_ruletype",
                             "settingInstanceTemplateReference": null,
                             "choiceSettingValue": {
-                            "settingValueTemplateReference": null,
-                            "value": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_automatic",
-                            "children": []
+                                "settingValueTemplateReference": null,
+                                "value": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_automatic",
+                                "children": []
                             }
                         },
 '@
@@ -758,9 +758,9 @@ elseif ($Deployment -like '*Import*') {
                             "settingDefinitionId": "device_vendor_msft_policy_privilegemanagement_elevationrules_{elevationrulename}_filedescription",
                             "settingInstanceTemplateReference": null,
                             "simpleSettingValue": {
-                              "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                              "settingValueTemplateReference": null,
-                              "value": "$FileDescription"
+                            "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                            "settingValueTemplateReference": null,
+                            "value": "$FileDescription"
                             }
                         },
                         {

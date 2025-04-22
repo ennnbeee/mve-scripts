@@ -1,33 +1,33 @@
 <#
-  .SYNOPSIS
-  Converts existing Firewall Rules profiles to Settings Catalog versions.
+.SYNOPSIS
+Converts existing Firewall Rules profiles to Settings Catalog versions.
 
-  .DESCRIPTION
-  The Invoke-MgConvertFirewallRules.ps1 script using Graph PowerShell tooling to capture all details of existing migrated
-  firewall rules, and reprocesses them in the new Settings Catalog format.
+.DESCRIPTION
+The Invoke-MgConvertFirewallRules.ps1 script using Graph PowerShell tooling to capture all details of existing migrated
+firewall rules, and reprocesses them in the new Settings Catalog format.
 
-  .PARAMETER tenantId
-  Provide the Id of the tenant to connecto to.
+.PARAMETER tenantId
+Provide the Id of the tenant to connecto to.
 
-  .PARAMETER policyName
-  The name of the new Firewall Rules policy, or in the event of multiple rules, each create Firewall Rule profile.
+.PARAMETER policyName
+The name of the new Firewall Rules policy, or in the event of multiple rules, each create Firewall Rule profile.
 
-  .PARAMETER oldFirewallPolicies
-  A list, or array, of the old Firewall Rule policies that are to be converted.
+.PARAMETER oldFirewallPolicies
+A list, or array, of the old Firewall Rule policies that are to be converted.
 
-  .PARAMETER Scopes
-  The scopes used to connect to the Graph API using PowerShell.
-  Default scopes configured are:
-  'Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
+.PARAMETER Scopes
+The scopes used to connect to the Graph API using PowerShell.
+Default scopes configured are:
+'Device.ReadWrite.All,DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All'
 
-  .INPUTS
-  None. You can't pipe objects to Invoke-MgConvertFirewallRules.ps1
+.INPUTS
+None. You can't pipe objects to Invoke-MgConvertFirewallRules.ps1
 
-  .OUTPUTS
-  None. Invoke-MgConvertFirewallRules.ps1 doesn't generate any output.
+.OUTPUTS
+None. Invoke-MgConvertFirewallRules.ps1 doesn't generate any output.
 
-  .EXAMPLE
-  PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -policyName 'CO_FW_Rules' -oldFirewallPolicies 'Legacy_FW_Rule1','Legacy_FW_Rule2','Legacy_FW_Rule3'
+.EXAMPLE
+PS> .\Invoke-MgConvertFirewallRules.ps1 -tenantId 36019fe7-a342-4d98-9126-1b6f94904ac7 -policyName 'CO_FW_Rules' -oldFirewallPolicies 'Legacy_FW_Rule1','Legacy_FW_Rule2','Legacy_FW_Rule3'
 
 #>
 
@@ -511,19 +511,19 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingInstance",
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_edgetraversal",
                 "settingInstanceTemplateReference": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
-                  "settingInstanceTemplateId": "fe674767-404d-4994-ac86-016f209851ee"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
+                    "settingInstanceTemplateId": "fe674767-404d-4994-ac86-016f209851ee"
                 },
                 "choiceSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-                  "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_edgetraversal_1",
-                  "settingValueTemplateReference": {
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
+                    "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_edgetraversal_1",
+                    "settingValueTemplateReference": {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
                     "settingValueTemplateId": "682b3827-caec-4378-99b3-0400c2c0537b",
                     "useTemplateDefault": false
-                  },
-                  "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
-                  "children": []
+                },
+                "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
+                 "children": []
                 }
             },
 '@#>
@@ -631,17 +631,17 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance",
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_app_packagefamilyname",
                 "settingInstanceTemplateReference": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
-                  "settingInstanceTemplateId": "1a91448b-b04e-4cb0-a80c-10ec64addfda"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
+                    "settingInstanceTemplateId": "1a91448b-b04e-4cb0-a80c-10ec64addfda"
                 },
                 "simpleSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                  "value": "$packageFamilyName",
-                  "settingValueTemplateReference": {
-                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
-                    "settingValueTemplateId": "a9b123c6-1c6f-4de3-8840-34f91dfb9422",
-                    "useTemplateDefault": false
-                  }
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                    "value": "$packageFamilyName",
+                    "settingValueTemplateReference": {
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingValueTemplateReference",
+                        "settingValueTemplateId": "a9b123c6-1c6f-4de3-8840-34f91dfb9422",
+                        "useTemplateDefault": false
+                    }
                 }
             },
 
@@ -679,8 +679,8 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                     "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
                     "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_localuserauthorizedlist",
                     "settingInstanceTemplateReference": {
-                      "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
-                      "settingInstanceTemplateId": "b11c8e7d-babc-4899-a4b4-04683b898faa"
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
+                        "settingInstanceTemplateId": "b11c8e7d-babc-4899-a4b4-04683b898faa"
                     },
                     "simpleSettingCollectionValue@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSimpleSettingValue)",
                     "simpleSettingCollectionValue": [
@@ -725,8 +725,8 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "@odata.type": "#microsoft.graph.deviceManagementConfigurationSimpleSettingCollectionInstance",
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_remoteportranges",
                 "settingInstanceTemplateReference": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
-                  "settingInstanceTemplateId": "de5d058e-ab1d-4772-81f5-32b6a35b4587"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationSettingInstanceTemplateReference",
+                    "settingInstanceTemplateId": "de5d058e-ab1d-4772-81f5-32b6a35b4587"
                 },
                 "simpleSettingCollectionValue@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSimpleSettingValue)",
                 "simpleSettingCollectionValue": [
@@ -1025,9 +1025,9 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
             "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_name",
             "settingInstanceTemplateReference": null,
             "simpleSettingValue": {
-              "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-              "settingValueTemplateReference": null,
-              "value": "$name"
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                "settingValueTemplateReference": null,
+                "value": "$name"
             }
         },
 
@@ -1040,11 +1040,11 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
             "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_enabled",
             "settingInstanceTemplateReference": null,
             "choiceSettingValue": {
-              "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-              "settingValueTemplateReference": null,
-              "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_enabled_1",
-              "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
-              "children": []
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
+                "settingValueTemplateReference": null,
+                "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_enabled_1",
+                "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
+                "children": []
             }
         },
 
@@ -1057,11 +1057,11 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
             "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction",
             "settingInstanceTemplateReference": null,
             "choiceSettingValue": {
-              "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-              "settingValueTemplateReference": null,
-              "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction_$direction",
-              "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
-              "children": []
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
+                "settingValueTemplateReference": null,
+                "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_direction_$direction",
+                "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
+                "children": []
             }
         },
 
@@ -1074,11 +1074,11 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_edgetraversal",
                 "settingInstanceTemplateReference": null,
                 "choiceSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-                  "settingValueTemplateReference": null,
-                  "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_edgetraversal_1",
-                  "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
-                  "children": []
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
+                    "settingValueTemplateReference": null,
+                    "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_edgetraversal_1",
+                    "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
+                    "children": []
                 }
             },
 '@#>
@@ -1090,9 +1090,9 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_protocol",
                 "settingInstanceTemplateReference": null,
                 "simpleSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationIntegerSettingValue",
-                  "settingValueTemplateReference": null,
-                  "value": "$protocol"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationIntegerSettingValue",
+                    "settingValueTemplateReference": null,
+                    "value": "$protocol"
                 }
             },
 
@@ -1152,13 +1152,13 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "settingInstanceTemplateReference": null,
                 "choiceSettingCollectionValue@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationChoiceSettingValue)",
                 "choiceSettingCollectionValue": [
-                  {
-                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-                    "settingValueTemplateReference": null,
-                    "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_interfacetypes_all",
-                    "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
-                    "children": []
-                  }
+                    {
+                        "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
+                        "settingValueTemplateReference": null,
+                        "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_interfacetypes_all",
+                        "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
+                        "children": []
+                    }
                 ]
             },
 
@@ -1173,9 +1173,9 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_app_packagefamilyname",
                 "settingInstanceTemplateReference": null,
                 "simpleSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                  "settingValueTemplateReference": null,
-                  "value": "$packageFamilyName"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                    "settingValueTemplateReference": null,
+                    "value": "$packageFamilyName"
                 }
             },
 
@@ -1190,9 +1190,9 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_app_filepath",
                 "settingInstanceTemplateReference": null,
                 "simpleSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                  "settingValueTemplateReference": null,
-                  "value": "$filePath"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                    "settingValueTemplateReference": null,
+                    "value": "$filePath"
                 }
             },
 
@@ -1353,9 +1353,9 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
                 "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_app_servicename",
                 "settingInstanceTemplateReference": null,
                 "simpleSettingValue": {
-                  "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-                  "settingValueTemplateReference": null,
-                  "value": "$service"
+                    "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                    "settingValueTemplateReference": null,
+                    "value": "$service"
                 }
             },
 
@@ -1461,11 +1461,11 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
             "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_action_type",
             "settingInstanceTemplateReference": null,
             "choiceSettingValue": {
-              "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
-              "settingValueTemplateReference": null,
-              "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_action_type_$ActionType",
-              "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
-              "children": []
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationChoiceSettingValue",
+                "settingValueTemplateReference": null,
+                "value": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_action_type_$ActionType",
+                "children@odata.type": "#Collection(microsoft.graph.deviceManagementConfigurationSettingInstance)",
+                "children": []
             }
         },
 
@@ -1478,9 +1478,9 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
             "settingDefinitionId": "vendor_msft_firewall_mdmstore_firewallrules_{firewallrulename}_description",
             "settingInstanceTemplateReference": null,
             "simpleSettingValue": {
-              "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
-              "settingValueTemplateReference": null,
-              "value": "$description"
+                "@odata.type": "#microsoft.graph.deviceManagementConfigurationStringSettingValue",
+                "settingValueTemplateReference": null,
+                "value": "$description"
             }
         }
 
@@ -1502,7 +1502,7 @@ foreach ($fwRuleGroup in $fwRuleGroups) {
 '@
             }
 
-            # Build the subequent Rule and add to array
+            # Build the subsequent Rule and add to array
             $JSONRule = $JSONRuleStart + $JSONRuleName + $JSONRuleState + $JSONRuleDirection + $JSONRuleProtocol + $JSONRuleLocalAddressRange + $JSONRuleInterface + $JSONRulePackageFamily + $JSONRuleFilePath + $JSONRuleAuthUsers + $JSONRuleRemotePorts + $JSONRuleFWProfile + $JSONRuleService + $JSONRuleLocalPorts + $JSONRuleRemoteAddressRange + $JSONRuleAction + $JSONRuleDescription + $JSONRuleEnd
             $JSONAllRules += $JSONRule
         }
