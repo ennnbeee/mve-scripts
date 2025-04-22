@@ -37,36 +37,44 @@ cd "$tempDir"
 attempts=5
 attempt=1
 while [ $attempt -le $attempts ]; do
-    echo "$(date) | Attempting to downloading file $fontPackageUrl [$attempt]..."
+    echo "$(date) | Attempting to download file $fontPackageUrl [$attempt]..."
     downloadResult=$(/usr/bin/curl -sL ${fontPackageUrl} -o ${tempDir}/fonts.zip -w "%{http_code}")
 
     if [[ $downloadResult -eq 200 ]]; then
-        echo "$(date) | Unzipping font files..."
+        echo "$(date) | Download successful. Unzipping font files..."
         unzip -qq -o fonts.zip
-        # Loop through each font file in the temporary directory
-        for fontFile in "$tempDir"/*; do
-            fontName=$(basename "$fontFile")
-            fontDest="$fontDir/$fontName"
+        if [[ $? -eq 0 ]]; then
+            echo "$(date) | Unzip successful. Processing font files..."
+            # Loop through each font file in the temporary directory
+            for fontFile in "$tempDir"/*; do
+                fontName=$(basename "$fontFile")
+                fontDest="$fontDir/$fontName"
 
-            if [[ "$fontFile" == *.ttf || "$fontFile" == *.otf || "$fontFile" == *.dfont || "$fontFile" == *.ttc ]]; then
-                # Check if the font file already exists in the destination directory
-                if [ ! -f "$fontDest" ]; then
-                    # Copy the font file to the destination directory
-                    mv "$fontFile" "$fontDest"
-                    echo "$(date) | Moved $fontName to $fontDir/$fontName"
-                else
-                    echo "$(date) | $fontName already exists in $fontDir/$fontName"
+                if [[ "$fontFile" == *.ttf || "$fontFile" == *.otf || "$fontFile" == *.dfont || "$fontFile" == *.ttc ]]; then
+                    # Check if the font file already exists in the destination directory
+                    if [ ! -f "$fontDest" ]; then
+                        # Copy the font file to the destination directory
+                        mv "$fontFile" "$fontDest"
+                        echo "$(date) | Moved $fontName to $fontDir/$fontName"
+                    else
+                        echo "$(date) | $fontName already exists in $fontDir/$fontName"
+                    fi
                 fi
-            fi
-        done
-        echo "$(date) | Removing $tempDir"
-        rm -rf "$tempDir"
+            done
+            echo "$(date) | Removing $tempDir"
+            rm -rf "$tempDir"
 
-        echo "$(date) | Script completed."
-        exit 0
+            echo "$(date) | Script completed."
+            exit 0
+        else
+            echo "$(date) | Unzip failed. Retrying..."
+        fi
     else
-        # If the download was not successful we will wait here for 2 seconds.
-        attempt=$((attempt + 1))
-        sleep 2
+        echo "$(date) | Download failed with status code $downloadResult. Retrying..."
     fi
+    attempt=$((attempt + 1))
+    sleep 2
 done
+
+echo "$(date) | All download attempts failed. Exiting script."
+exit 1
