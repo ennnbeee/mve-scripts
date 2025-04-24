@@ -1,5 +1,5 @@
 $transcriptPath = "$env:ProgramData\Microsoft\IntuneManagementExtension\Logs"
-$transcriptName = 'WUFB-Remediation.log'
+$transcriptName = 'Telemetry-Detection.log'
 New-Item $transcriptPath -ItemType Directory -Force
 
 # Stopping orphaned transcripts
@@ -10,32 +10,6 @@ catch [System.InvalidOperationException]
 {}
 
 Start-Transcript -Path $transcriptPath\$transcriptName -Append
-
-# WUFB settings
-[PsObject[]]$regKeysWUFB = @()
-# Keys for Windows Update for Business
-$regKeysWUFB += [PsObject]@{ Name = 'DoNotConnectToWindowsUpdateInternetLocations'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-$regKeysWUFB += [PsObject]@{ Name = 'DisableWindowsUpdateAccess'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-$regKeysWUFB += [PsObject]@{ Name = 'NoAutoUpdate'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU\' }
-# Comment out these Keys if Co-managed
-#$regKeysWUFB += [PsObject]@{ Name = 'WUServer'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-#$regKeysWUFB += [PsObject]@{ Name = 'DisableDualScan'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-#$regKeysWUFB += [PsObject]@{ Name = 'UseWUServer'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU\' }
-# Registry keys for Feature Update target versions
-$regKeysWUFB += [PsObject]@{ Name = 'ProductVersion'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-$regKeysWUFB += [PsObject]@{ Name = 'TargetReleaseVersion'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-$regKeysWUFB += [PsObject]@{ Name = 'TargetReleaseVersionInfo'; path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\' }
-
-foreach ($setting in $regKeysWUFB) {
-    Write-Host "Checking $($setting.name)"
-    if ((Get-Item $setting.path -ErrorAction Ignore).Property -contains $setting.name) {
-        Write-Host "Remediating $($setting.name)"
-        Remove-ItemProperty -Path $setting.path -Name $($setting.name)
-    }
-    else {
-        Write-Host "$($setting.name) was not found"
-    }
-}
 
 # Telemetry settings
 [PsObject[]]$regKeysTelemetry = @()
@@ -63,5 +37,5 @@ foreach ($setting in $regKeysTelemetry) {
 }
 
 Stop-Transcript
-Write-Host 'Windows Update registry settings are correct'
-exit 0
+Write-Host 'Windows Telemetry registry settings are correct'
+Exit 0
