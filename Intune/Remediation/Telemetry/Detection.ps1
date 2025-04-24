@@ -30,6 +30,10 @@ foreach ($setting in $regKeysTelemetry) {
             $remediationNeeded = $true
         }
     }
+    else {
+        Write-Host "$($setting.name) does not exist"
+        $remediationNeeded = $true
+    }
 }
 
 # check if remediation is needed
