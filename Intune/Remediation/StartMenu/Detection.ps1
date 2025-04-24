@@ -14,7 +14,7 @@ Start-Transcript -Path $transcriptPath\$transcriptName -Append
 # Start Menu settings
 [PsObject[]]$regKeysStartMenu = @()
 # Start Menu keys and values
-$regKeysStartMenu += [PsObject]@{ Name = 'TaskbarAl'; path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\'; value = 0; type = 'DWord' }
+$regKeysStartMenu += [PsObject]@{ Name = 'TaskbarAl'; path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\'; value = 0; type = 'DWord' } # 0 is left, 1 is right
 
 
 foreach ($setting in $regKeysStartMenu) {
