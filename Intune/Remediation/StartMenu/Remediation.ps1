@@ -1,35 +1,17 @@
-$transcriptPath = "$env:ProgramData\Microsoft\IntuneManagementExtension\Logs"
-$transcriptName = 'StartMenu-Detection.log'
-New-Item $transcriptPath -ItemType Directory -Force
+New-PSDrive HKU Registry HKEY_USERS | Out-Null
+$userName = Get-WmiObject -Class Win32_Computersystem | Select-Object Username;
+$userSID = (New-Object System.Security.Principal.NTAccount($userName.UserName)).Translate([System.Security.Principal.SecurityIdentifier]).value
+$regSetting = 'TaskbarAl'
+$regSettingValue = 0 # 0 is left, 1 is centre
+$regKey = "HKU:\$userSID\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+$regValues = (Get-Item $regKey).Property
 
-# Stopping orphaned transcripts
-try {
-    Stop-Transcript | Out-Null
+if ($regValues -notcontains $regSetting) {
+    Write-Output "Created registry setting $regSetting"
+    New-ItemProperty -Path $regKey -Name $regSetting -Value $regSettingValue -PropertyType DWord -Force
 }
-catch [System.InvalidOperationException]
-{}
-
-Start-Transcript -Path $transcriptPath\$transcriptName -Append
-
-# Start Menu settings
-[PsObject[]]$regKeysStartMenu = @()
-# Start Menu keys and values
-$regKeysStartMenu += [PsObject]@{ Name = 'TaskbarAl'; path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\'; value = 0; type = 'DWord' } # 0 is left, 1 is right
-
-foreach ($setting in $regKeysStartMenu) {
-    Write-Host "Checking $($setting.name)"
-    if ((Get-Item $setting.path -ErrorAction Ignore).Property -contains $setting.name) {
-        if ((Get-ItemPropertyValue -Path $setting.Path -Name $setting.Name) -ne $setting.value) {
-            Write-Host "Remediating $($setting.name)"
-            Set-ItemProperty -Path $setting.Path -Name $setting.Name -Value $setting.value
-        }
-    }
-    else {
-        Write-Host "Remediating $($setting.name)"
-        New-ItemProperty -Path $setting.Path -Name $setting.Name -Value $setting.value -PropertyType $setting.type -Force | Out-Null
-    }
+else {
+    Write-Output "Updated registry setting $regSetting"
+    Set-ItemProperty -Path $regKey -Name $regSetting -Value $regSettingValue -Force
 }
-
-Stop-Transcript
-Write-Host 'Windows Start Menu registry settings are correct'
-Exit 0
+Remove-PSDrive -Name HKU -Force | Out-Null

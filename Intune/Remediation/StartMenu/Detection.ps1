@@ -1,43 +1,30 @@
-$transcriptPath = "$env:ProgramData\Microsoft\IntuneManagementExtension\Logs"
-$transcriptName = 'StartMenu-Detection.log'
-New-Item $transcriptPath -ItemType Directory -Force
+New-PSDrive HKU Registry HKEY_USERS | Out-Null
+$userName = Get-WmiObject -Class Win32_Computersystem | Select-Object Username;
+$userSID = (New-Object System.Security.Principal.NTAccount($userName.UserName)).Translate([System.Security.Principal.SecurityIdentifier]).value
+$regSetting = 'TaskbarAl'
+$regSettingValue = 0 # 0 is left, 1 is centre
+$regKey = "HKU:\$userSID\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+$regValues = (Get-Item $regKey).Property
 
-# Stopping orphaned transcripts
-try {
-    Stop-Transcript | Out-Null
+if ($regValues -notcontains $regSetting) {
+    $remediationNeeded = $true
 }
-catch [System.InvalidOperationException]
-{}
-
-Start-Transcript -Path $transcriptPath\$transcriptName -Append
-
-# Start Menu settings
-[PsObject[]]$regKeysStartMenu = @()
-# Start Menu keys and values
-$regKeysStartMenu += [PsObject]@{ Name = 'TaskbarAl'; path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\'; value = 0; type = 'DWord' } # 0 is left, 1 is right
-
-foreach ($setting in $regKeysStartMenu) {
-    Write-Host "Checking $($setting.name)"
-    if ((Get-Item $setting.path -ErrorAction Ignore).Property -contains $setting.name) {
-        if ((Get-ItemPropertyValue -path $setting.Path -name $setting.Name) -ne $setting.value) {
-            Write-Host "$($setting.name) value is not correct"
-            $remediationNeeded = $true
-        }
-    }
-    else {
-        Write-Host "$($setting.name) value does not exist"
+else {
+    $regValue = Get-ItemPropertyValue -Path $regKey -Name $regSetting
+    if ($regValue -ne $regSettingValue) {
         $remediationNeeded = $true
+    } else {
+        $remediationNeeded = $false
     }
 }
 
-# check if remediation is needed
+Remove-PSDrive -Name HKU -Force | Out-Null
+
 if ($remediationNeeded -eq $true) {
-    Stop-Transcript
-    Write-Host 'Windows Start Menu registry settings are incorrect'
+    Write-Output 'Windows Start Menu registry settings are incorrect'
     exit 1
 }
 else {
-    Stop-Transcript
-    Write-Host 'Windows Start Menu registry settings are correct'
+    Write-Output 'Windows Start Menu registry settings are correct'
     exit 0
 }

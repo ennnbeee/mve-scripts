@@ -6,9 +6,9 @@
     <CustomTaskbarLayoutCollection PinListPlacement="Replace">
         <defaultlayout:TaskbarLayout>
             <taskbar:TaskbarPinList>
-                <taskbar:DesktopApp DesktopApplicationID="Microsoft.Windows.Explorer" />
-                <taskbar:DesktopApp DesktopApplicationID="Microsoft.Office.OUTLOOK.EXE.15" />
                 <taskbar:DesktopApp DesktopApplicationID="MSEdge" />
+                <taskbar:DesktopApp DesktopApplicationID="Microsoft.Office.OUTLOOK.EXE.15" />
+                <taskbar:DesktopApp DesktopApplicationID="Microsoft.Windows.Explorer" />
             </taskbar:TaskbarPinList>
         </defaultlayout:TaskbarLayout>
     </CustomTaskbarLayoutCollection>

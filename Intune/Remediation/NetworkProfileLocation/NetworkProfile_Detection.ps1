@@ -1,7 +1,7 @@
 #6 - Wired Network, 23 - VPN, 71 - Wireless Network, 243 - Mobile Broadband
 
 $registryKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles'
-$profileNames = @('ennbee*', 'Always On VPN*', 'Corp-WiFi*')
+$profileNames = @('odds.*', 'Always On VPN*', 'Corp-WiFi*')
 $privateNetworkProfiles = @()
 $issueNetworkProfiles = @()
 

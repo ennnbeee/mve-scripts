@@ -1,5 +1,5 @@
 $registryKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles'
-$profileNames = @('ennbee*', 'Always On VPN*', 'Corp-WiFi*')
+$profileNames = @('odds.*', 'Always On VPN*', 'Corp-WiFi*')
 $privateNetworkProfiles = @()
 
 try {
